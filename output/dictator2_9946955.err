@@ -1,0 +1,9 @@
+pybullet build time: Oct 11 2021 20:59:00
+/gpfs/fs1/home/apuhl/decentralized-peer-learning/virt/lib/python3.7/site-packages/gym/spaces/box.py:74: UserWarning: [33mWARN: Box bound precision lowered by casting to float32[0m
+  "Box bound precision lowered by casting to {}".format(self.dtype)
+Traceback (most recent call last):
+  File "dictator.py", line 191, in <module>
+    dictator = agent[0]
+TypeError: 'SoftActorCritic' object is not subscriptable
+srun: error: z0147: task 0: Exited with exit code 1
+srun: Terminating job step 9946955.0
