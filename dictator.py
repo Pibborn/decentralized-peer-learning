@@ -207,9 +207,12 @@ for i in range(0 + 1, n_epochs + 1):
                 env.render()
             
             action = None
-            with dictator.eval_mode():
+
+            if k != 0:
+                with dictator.eval_mode():
+                    action = dictator.act(obs)
+            else:
                 action = dictator.act(obs)
-            
             previous_obs = obs
             obs, reward, done, info = env.step(action)
             
