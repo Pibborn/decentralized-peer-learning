@@ -1,0 +1,9 @@
+/var/tmp/slurmd_spool/job9946911/slurm_script: line 23: virt/bin/activate: No such file or directory
+Traceback (most recent call last):
+  File "dictator.py", line 2, in <module>
+    import agent_factory
+  File "/gpfs/fs1/home/apuhl/decentralized-peer-learning/agent_factory.py", line 5, in <module>
+    import pfrl
+ModuleNotFoundError: No module named 'pfrl'
+srun: error: z0073: task 0: Exited with exit code 1
+srun: Terminating job step 9946911.0
