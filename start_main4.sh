@@ -22,4 +22,4 @@ module load devel/PyTorch/1.6.0-fosscuda-2019b-Python-3.7.4
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 source virt/bin/activate
 
-srun python DDPG/pfrl/main.py --save-name="main4" --seed=104 --agent-count=4 --use-trust=0 --use-critic=0 --use-agent-value=0 --use-trust-buffer=0 --load=0  --peer-learning=0 --gpu=-1
+srun python main.py --save-name="main4" --seed=104 --agent-count=4 --use-trust=0 --use-critic=0 --use-agent-value=0 --use-trust-buffer=0 --load=0  --peer-learning=0 --gpu=-1
