@@ -18,15 +18,15 @@ IS_LOCAL=False#print flag for local experiments
 MIN_EPOCH_LEN = 10000
 options = {
     "FOLLOW_STEPS" : 1,
-    "SWITCH_TRAIN" : 1,
+    "SWITCH_TRAIN" : 0,
     "SWITCH_RATIO" : 1,
     "SAVE_NAME" : "temp",
     "HIDDEN_SIZE" : 256,
     "AGENT_COUNT" : 4,
-    "PEER_LEARNING" : 1,
+    "PEER_LEARNING" : 0,
     "USE_AGENT_VALUE" : 0,
-    "USE_TRUST" : 1,
-    "USE_CRITIC" : 1,
+    "USE_TRUST" : 0,
+    "USE_CRITIC" : 0,
     "T" : 1,
     "T_DECAY" : 0,
     "TRUST_LR" : 0.001,
@@ -187,12 +187,12 @@ def test_agent(agent,env,max_episode_len):
         return mean, std
 
 
-boost_single = False
+# boost_single = False
 for i in range(0 + 1, n_epochs + 1):
 
-    single_epoch = i%(1+args.switch_ratio)==1 if args.switch_train else False
-    if boost_single and args.switch_train:
-        single_epoch = not single_epoch
+    # single_epoch = i%(1+args.switch_ratio)==1 if args.switch_train else False
+    # if boost_single and args.switch_train:
+    #     single_epoch = not single_epoch
 
     for k in range(len(agents)):
         agent = agents[k]

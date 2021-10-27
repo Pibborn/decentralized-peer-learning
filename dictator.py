@@ -187,13 +187,13 @@ def test_agent(agent,env,max_episode_len):
         return mean, std
 
 
-boost_single = False
+# boost_single = False
 dictator = agent[0]
 for i in range(0 + 1, n_epochs + 1):
 
-    single_epoch = i%(1+args.switch_ratio)==1 if args.switch_train else False
-    if boost_single and args.switch_train:
-        single_epoch = not single_epoch
+    # single_epoch = i%(1+args.switch_ratio)==1 if args.switch_train else False
+    # if boost_single and args.switch_train:
+    #     single_epoch = not single_epoch
 
     for k in range(len(agents)):
         obs = env.reset()
@@ -232,25 +232,23 @@ for i in range(0 + 1, n_epochs + 1):
         
        
     if i % args.eval_interval == 0:
-        if IS_LOCAL:
-            print("agent",k)
 
         dictator.save(os.path.join(experiment_folder,'dictatorbackup'))
         dictator.replay_buffer.save(os.path.join(experiment_folder,'dictatorbackup','buffer'))
 
         save_info[k] = False
         with open(save_info_path, "w") as file:
-                json.dump(save_info,file)
+            json.dump(save_info,file)
 
         dictator.save(os.path.join(experiment_folder,'dictator'))
         dictator.replay_buffer.save(os.path.join(experiment_folder,'dictator','buffer'))
 
         save_info[k] = True
         with open(save_info_path, "w") as file:
-                json.dump(save_info,file)
+            json.dump(save_info,file)
         
         
-        reward, std = test_agent(agent,env,max_episode_len)
+        reward, std = test_agent(dictator,env,max_episode_len)
         test_rewards[k].append(reward)
 
         with open(result_folder, "w") as file:
@@ -264,8 +262,8 @@ for i in range(0 + 1, n_epochs + 1):
 
 for k in range(args.agent_count):
     if save_info[k]:
-        shutil.rmtree(os.path.join(experiment_folder,'agent'+str(k)+'backup'), ignore_errors=False, onerror=None)
+        shutil.rmtree(os.path.join(experiment_folder,'dictatorbackup'), ignore_errors=False, onerror=None)
     else:
-        shutil.rmtree(os.path.join(experiment_folder,'agent'+str(k)), ignore_errors=False, onerror=None)
+        shutil.rmtree(os.path.join(experiment_folder,'dictator'), ignore_errors=False, onerror=None)
 
         
