@@ -188,7 +188,7 @@ def test_agent(agent,env,max_episode_len):
 
 
 # boost_single = False
-dictator = agent[0]
+dictator = agents[0]
 for i in range(0 + 1, n_epochs + 1):
 
     # single_epoch = i%(1+args.switch_ratio)==1 if args.switch_train else False
