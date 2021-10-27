@@ -2,7 +2,7 @@ import argparse
 import agent_factory
 from suggenstionbuffer import SuggestionBuffer
 import numpy
-import torch
+import gym
 import os
 import json
 import shutil
