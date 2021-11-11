@@ -195,7 +195,7 @@ for i in range(0 + 1, n_epochs + 1):
     # if boost_single and args.switch_train:
     #     single_epoch = not single_epoch
 
-    for j in range(len(max_epoch_len)):
+    for j in range(max_epoch_len):
         for k in range(len(agents)):
             if j==0:
                 if k==0:
