@@ -202,11 +202,9 @@ for i in range(0 + 1, n_epochs + 1):
                     obs = []
                     R = []
                     t = []
-                    current_follow_step = 0
                 obs.append(env.reset())
                 R.append(0)
                 t.append(0)
-                current_follow_step.append(0)
         
             #Uncomment to watch the behavior in a GUI window
             if args.render_train:
