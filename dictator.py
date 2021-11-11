@@ -214,20 +214,20 @@ for i in range(0 + 1, n_epochs + 1):
 
             if k != 0:
                 with dictator.eval_mode():
-                    action = dictator.act(obs)
+                    action = dictator.act(obs[k])
             else:
-                action = dictator.act(obs)
-            previous_obs = obs
-            obs, reward, done, info = env.step(action)
+                action = dictator.act(obs[k])
+            previous_obs = obs[k]
+            obs[k], reward, done, info = env.step(action)
             
             R[k] += reward
             t[k] += 1
             reset = t[k] == max_episode_len
         
             if k == 0:
-                dictator.observe(obs, reward, done, reset)
+                dictator.observe(obs[k], reward, done, reset)
             else:
-                dictator.replay_buffer.append(previous_obs, action, reward, obs)
+                dictator.replay_buffer.append(previous_obs, action, reward, obs[k])
 
             if done or reset:
                 obs[k] = env.reset()
