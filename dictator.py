@@ -125,7 +125,7 @@ ARGS_PATH = os.path.join(experiment_folder,f"{args.save_name}-args.obj")#f"{expe
 result_folder = os.path.join(experiment_folder,"results.json")#f"{experiment_folder}\\results.json"
 save_info_path = os.path.join(experiment_folder,"save_info.json")#f"{experiment_folder}\\results.json"
 
-save_info = [False for x in range(args.agent_count)]
+save_info = False 
 
 assert(args.peer_learning if args.use_trust else True)
 assert(args.peer_learning if args.use_critic else True)
@@ -152,7 +152,7 @@ for i in range(args.agent_count):
     agents.append(agent)
 
 #INIT PEER PARAMS AND RESULTS
-test_rewards = [[] for _ in range(args.agent_count)]
+test_rewards = []
 follow_history = [[[0 for _ in range(n_epochs)] for _ in range(len(agents))] for _ in range(len(agents))]
 start_epoch = 0
 
@@ -195,14 +195,20 @@ for i in range(0 + 1, n_epochs + 1):
     # if boost_single and args.switch_train:
     #     single_epoch = not single_epoch
 
-    for k in range(len(agents)):
-        obs = env.reset()
-        R = 0  # return (sum of rewards)
-        t = 0  # time step
-        epoch_steps = 0
-        current_follow_step = 0
-        while True:
-           #Uncomment to watch the behavior in a GUI window
+    for j in range(len(max_epoch_len)):
+        for k in range(len(agents)):
+            if j==0:
+                if k==0:
+                    obs = []
+                    R = []
+                    t = []
+                    current_follow_step = 0
+                obs.append(env.reset())
+                R.append(0)
+                t.append(0)
+                current_follow_step.append(0)
+        
+            #Uncomment to watch the behavior in a GUI window
             if args.render_train:
                 env.render()
             
@@ -216,22 +222,19 @@ for i in range(0 + 1, n_epochs + 1):
             previous_obs = obs
             obs, reward, done, info = env.step(action)
             
-            R += reward
-            t += 1
-            epoch_steps += 1
-            reset = t == max_episode_len
-         
+            R[k] += reward
+            t[k] += 1
+            reset = t[k] == max_episode_len
+        
             if k == 0:
                 dictator.observe(obs, reward, done, reset)
             else:
                 dictator.replay_buffer.append(previous_obs, action, reward, obs)
 
-            if done or reset or epoch_steps >= max_epoch_len:
-                obs = env.reset()
-                R = 0  # return (sum of rewards)
-                t = 0  # time step
-                if epoch_steps >= max_epoch_len:
-                    break
+            if done or reset:
+                obs[k] = env.reset()
+                R[k] = 0  # return (sum of rewards)
+                t[k] = 0  # time step
         
        
     if i % args.eval_interval == 0:
@@ -239,20 +242,20 @@ for i in range(0 + 1, n_epochs + 1):
         dictator.save(os.path.join(experiment_folder,'dictatorbackup'))
         dictator.replay_buffer.save(os.path.join(experiment_folder,'dictatorbackup','buffer'))
 
-        save_info[k] = False
+        save_info = False
         with open(save_info_path, "w") as file:
             json.dump(save_info,file)
 
         dictator.save(os.path.join(experiment_folder,'dictator'))
         dictator.replay_buffer.save(os.path.join(experiment_folder,'dictator','buffer'))
 
-        save_info[k] = True
+        save_info = True
         with open(save_info_path, "w") as file:
             json.dump(save_info,file)
         
         
         reward, std = test_agent(dictator,env,max_episode_len)
-        test_rewards[k].append(reward)
+        test_rewards.append(reward)
 
         with open(result_folder, "w") as file:
             json.dump({
