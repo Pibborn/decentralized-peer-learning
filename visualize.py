@@ -40,7 +40,7 @@ for j in range(len(experiment1)):
         results = json.load(file)
         test_rewards = results["rewards"]
     
-    result = test_rewards[3]
+    result = test_rewards
     y1.append(result)
 
     if (j < len(experiment2)):

@@ -109,7 +109,8 @@ def make_env(test):
          env.render()
     return env
 
-env = make_env(test=False)
+envs = [make_env(test=False),make_env(test=False),make_env(test=False),make_env(test=False)]
+env = envs[0]
 timestep_limit = env.spec.max_episode_steps
 obs_space = env.observation_space
 action_space = env.action_space
@@ -190,11 +191,6 @@ def test_agent(agent,env,max_episode_len):
 # boost_single = False
 dictator = agents[0]
 for i in range(0 + 1, n_epochs + 1):
-
-    # single_epoch = i%(1+args.switch_ratio)==1 if args.switch_train else False
-    # if boost_single and args.switch_train:
-    #     single_epoch = not single_epoch
-
     for j in range(max_epoch_len):
         for k in range(len(agents)):
             if j==0:
@@ -202,13 +198,13 @@ for i in range(0 + 1, n_epochs + 1):
                     obs = []
                     R = []
                     t = []
-                obs.append(env.reset())
+                obs.append(envs[k].reset())
                 R.append(0)
                 t.append(0)
         
             #Uncomment to watch the behavior in a GUI window
             if args.render_train:
-                env.render()
+                env[k].render()
             
             action = None
 
@@ -218,7 +214,7 @@ for i in range(0 + 1, n_epochs + 1):
             else:
                 action = dictator.act(obs[k])
             previous_obs = obs[k]
-            obs[k], reward, done, info = env.step(action)
+            obs[k], reward, done, info = envs[k].step(action)
             
             R[k] += reward
             t[k] += 1
@@ -230,7 +226,7 @@ for i in range(0 + 1, n_epochs + 1):
                 dictator.replay_buffer.append(previous_obs, action, reward, obs[k])
 
             if done or reset:
-                obs[k] = env.reset()
+                obs[k] = envs[k].reset()
                 R[k] = 0  # return (sum of rewards)
                 t[k] = 0  # time step
         
@@ -265,7 +261,7 @@ for i in range(0 + 1, n_epochs + 1):
 
 
 for k in range(args.agent_count):
-    if save_info[k]:
+    if save_info:
         shutil.rmtree(os.path.join(experiment_folder,'dictatorbackup'), ignore_errors=False, onerror=None)
     else:
         shutil.rmtree(os.path.join(experiment_folder,'dictator'), ignore_errors=False, onerror=None)
