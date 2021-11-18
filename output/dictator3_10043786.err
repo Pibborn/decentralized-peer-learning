@@ -1,0 +1,13 @@
+pybullet build time: Oct 11 2021 20:59:00
+/gpfs/fs1/home/apuhl/decentralized-peer-learning/virt/lib/python3.7/site-packages/gym/spaces/box.py:74: UserWarning: [33mWARN: Box bound precision lowered by casting to float32[0m
+  "Box bound precision lowered by casting to {}".format(self.dtype)
+Traceback (most recent call last):
+  File "dictator.py", line 265, in <module>
+    shutil.rmtree(os.path.join(experiment_folder,'dictatorbackup'), ignore_errors=False, onerror=None)
+  File "/cluster/easybuild/broadwell/software/Python/3.7.4-GCCcore-8.3.0/lib/python3.7/shutil.py", line 485, in rmtree
+    onerror(os.lstat, path, sys.exc_info())
+  File "/cluster/easybuild/broadwell/software/Python/3.7.4-GCCcore-8.3.0/lib/python3.7/shutil.py", line 483, in rmtree
+    orig_st = os.lstat(path)
+FileNotFoundError: [Errno 2] No such file or directory: 'Experiments/dictator3/dictatorbackup'
+srun: error: z0256: task 0: Exited with exit code 1
+srun: Terminating job step 10043786.0
