@@ -16,6 +16,7 @@ import pybulletgym
 #DEFAULT ARGUMENTS
 IS_LOCAL=False#print flag for local experiments
 MIN_EPOCH_LEN = 10000
+failure_rate = 0.2
 options = {
     "FOLLOW_STEPS" : 1,
     "SWITCH_TRAIN" : 0,
@@ -209,6 +210,7 @@ for i in range(0 + 1, n_epochs + 1):
             
             action = agent.act(obs)
             
+            obs2 = obs
             obs, reward, done, info = env.step(action)
             
             R += reward
@@ -216,7 +218,11 @@ for i in range(0 + 1, n_epochs + 1):
             epoch_steps += 1
             reset = t == max_episode_len
          
-            agent.observe(obs, reward, done, reset)
+            rnd = numpy.random.rand()
+            if rnd > failure_rate:
+                agent.observe(obs, reward, done, reset)
+            else:
+                agent.replay_buffer.append(numpy.zeros(obs2.shape), numpy.zeros(action.shape), reward, numpy.zeros(obs.shape))
 
             if done or reset or epoch_steps >= max_epoch_len:
                 obs = env.reset()

@@ -16,6 +16,7 @@ import pybulletgym
 #DEFAULT ARGUMENTS
 IS_LOCAL=False#print flag for local experiments
 MIN_EPOCH_LEN = 10000
+failure_rate = 0.2
 options = {
     "FOLLOW_STEPS" : 1,
     "SWITCH_TRAIN" : 1,
@@ -208,11 +209,16 @@ for i in range(0 + 1, n_epochs + 1):
             
             action = None
 
-            if k != 0:
-                with dictator.eval_mode():
+            rnd = numpy.random.rand()
+            if rnd > failure_rate:
+                if k != 0:
+                    with dictator.eval_mode():
+                        action = dictator.act(obs[k])
+                else:
                     action = dictator.act(obs[k])
             else:
-                action = dictator.act(obs[k])
+                action = numpy.zeros(obs[k].shape)
+
             previous_obs = obs[k]
             obs[k], reward, done, info = envs[k].step(action)
             
