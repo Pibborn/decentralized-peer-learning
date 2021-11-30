@@ -22,4 +22,4 @@ module load devel/PyTorch/1.6.0-fosscuda-2019b-Python-3.7.4
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 source virt/bin/activate
 
-srun python main.py --save-name="main" --seed=100 --agent-count=4 --gpu=-1
+srun python main.py --save-name="main_f02" --seed=100 --agent-count=4 --gpu=-1
