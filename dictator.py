@@ -226,7 +226,7 @@ for i in range(0 + 1, n_epochs + 1):
             t[k] += 1
             reset = t[k] == max_episode_len
         
-            if k == 0:
+            if k == 0 and rnd > failure_rate:
                 dictator.observe(obs[k], reward, done, reset)
             else:
                 dictator.replay_buffer.append(previous_obs, action, reward, obs[k])
