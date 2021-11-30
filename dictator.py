@@ -267,9 +267,7 @@ for i in range(0 + 1, n_epochs + 1):
 
 
 for k in range(args.agent_count):
-    if save_info:
-        shutil.rmtree(os.path.join(experiment_folder,'dictatorbackup'), ignore_errors=False, onerror=None)
-    else:
-        shutil.rmtree(os.path.join(experiment_folder,'dictator'), ignore_errors=False, onerror=None)
+    shutil.rmtree(os.path.join(experiment_folder,'dictatorbackup'), ignore_errors=False, onerror=None)
+    shutil.rmtree(os.path.join(experiment_folder,'dictator'), ignore_errors=False, onerror=None)
 
         
