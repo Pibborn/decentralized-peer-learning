@@ -223,6 +223,7 @@ for i in range(0 + 1, n_epochs + 1):
                 agent.observe(obs, reward, done, reset)
             else:
                 agent.replay_buffer.append(numpy.zeros(obs2.shape), numpy.zeros(action.shape), reward, numpy.zeros(obs.shape))
+                #agent.replay_buffer.append(obs_space.sample(), action_space.sample(), reward, obs_space.sample())
 
             if done or reset or epoch_steps >= max_epoch_len:
                 obs = env.reset()
