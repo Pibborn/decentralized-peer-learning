@@ -1,6 +1,6 @@
 import argparse
 import agent_factory
-from suggenstionbuffer import SuggestionBuffer
+from suggestionbuffer import SuggestionBuffer
 import numpy
 import gym
 import os
