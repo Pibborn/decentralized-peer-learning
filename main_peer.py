@@ -200,13 +200,12 @@ if IS_LOCAL:
 agents = []
 sbufs = []
 
+#todo: should be dependent on agent_count
 agent_funcs = [
     lambda a,b,c: agent_factory.get_sac_agent(a,b,c),
     lambda a,b,c: agent_factory.get_sac_agent(a,b,c),
     lambda a,b,c: agent_factory.get_sac_agent(a,b,c),
-    lambda a,b,c: agent_factory.get_sac_agent(a,b,c),
-    lambda a,b,c: agent_factory.get_td3_agent(a,b,c),
-    lambda a,b,c: agent_factory.get_ddpg_agent(a,b,c)
+    lambda a,b,c: agent_factory.get_sac_agent(a,b,c)
     ]
 if args.mix_agents:
     agent_funcs = [
@@ -297,6 +296,7 @@ def test_agent(agent,env,max_episode_len):
 
 
 def update_agent_values(agents,agent_values,sbuffers,batch_size=10):
+    #return if not enough samples collected
     for buffer in sbuffers:
         if buffer.size < batch_size:
             return
@@ -323,7 +323,7 @@ def update_agent_values(agents,agent_values,sbuffers,batch_size=10):
             target = samples[sample_index][0] + gamma*vs_[sample_index][0]
             followed_agent = samples[sample_index][2]
             targets[followed_agent] += target
-            counts[followd_agent] += 1
+            counts[followed_agent] += 1
         
     for i in range(args.agent_count):
         target = targets[i] / counts[i]
@@ -373,8 +373,7 @@ def get_action(obs, agent_index, agents, epoch):
     agent = agents[agent_index]
 
     own_action = agent.act(obs)
-
-    #TODO How to combine agent and trust values?
+    
     if args.use_agent_value or args.use_trust or args.use_critic:
         vals = numpy.zeros((args.agent_count))
         if args.use_trust:
@@ -406,6 +405,7 @@ def get_action(obs, agent_index, agents, epoch):
             normalized = critic / max_critic
             vals = vals + normalized
 
+        #TODO could simply be unnecessary
         if numpy.min(vals) < 0:
             vals = vals + numpy.abs(numpy.min(vals))
         
@@ -427,7 +427,7 @@ def get_action(obs, agent_index, agents, epoch):
 
     return action,[followed_agent]
 
-
+#to determine single vs peer epoch 
 boost_single = False
 if (args.switch_ratio) < 1:
     boost_single = True
