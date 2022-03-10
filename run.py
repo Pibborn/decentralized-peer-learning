@@ -39,7 +39,7 @@ options = {
     "REPLAY_START_SIZE" : 10000,#,200,#
     "RBUF_CAPACITY" : 10**6,
     "TEST": False,
-    "ENV" : "HalfCheetahPyBulletEnv-v0",#Pendulum-v0"#""Pendulum-v0"#"Walker2DPyBulletEnv-v0" #"InvertedDoublePendulumPyBulletEnv-v0"#"BipedalWalker-v3"#
+    "ENV" : "HalfCheetahBulletEnv-v0",#Pendulum-v0"#""Pendulum-v0"#"Walker2DPyBulletEnv-v0" #"InvertedDoublePendulumPyBulletEnv-v0"#"BipedalWalker-v3"#
     "N_AGENTS": 4,
     "BASESAVELOC": "./agents/",
     "SAVEDIR": datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'),
@@ -120,7 +120,7 @@ def make_env(seed):
     # Use different random seeds for train and test envs
     env_seed = seed
     env.seed(env_seed)
-    env._max_episode_steps = 1e6 # see https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/sac.yml
+    #env._max_episode_steps = 1e4 # see https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/sac.yml
     env = Monitor(env)
     if args.render_train:
         env.render()
