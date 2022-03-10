@@ -112,19 +112,22 @@ def add_args():
     return parser
 
 
-def make_env():
+def make_env(seed):
     env = gym.make(args.env)
     # Unwrap TimeLimit wrapper TODO understand why
     # assert isinstance(env, gym.wrappers.TimeLimit)
     # env = env.env
     # Use different random seeds for train and test envs
-    env_seed = args.seed
+    env_seed = seed
     env.seed(env_seed)
     env._max_episode_steps = 1e6 # see https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/sac.yml
     env = Monitor(env)
     if args.render_train:
         env.render()
-    return env
+
+    def return_env():
+        return env
+    return return_env
 
 
 def create_sac_agents(env, num_agents):
@@ -157,8 +160,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     run = wandb.init(entity='jgu-wandb', config=args, project='peer-learning', monitor_gym=True, sync_tensorboard=True)
     #train_env = SubprocVecEnv([make_env(args.env, args.test) for i in range(args.num_agents)])
-    train_env = make_vec_env(args.env, n_envs=args.num_agents, seed=args.seed+1)
-    test_env = DummyVecEnv([make_env])
+    #train_env = make_vec_env(args.env, n_envs=args.num_agents, seed=args.seed+1)
+    train_env = DummyVecEnv([make_env(args.seed)])
+    test_env = DummyVecEnv([make_env(args.seed+1)])
     if args.track_video:
         test_env = VecVideoRecorder(test_env, f"videos/{run.id}",
                                     record_video_trigger=lambda x: x % args.log_interval == 0,
