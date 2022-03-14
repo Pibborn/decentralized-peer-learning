@@ -2,7 +2,9 @@ import os
 from stable_baselines3 import SAC
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.callbacks import EvalCallback
-from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.env_util import make_vec_env, DummyVecEnv
+from stable_baselines3.common.vec_env import VecVideoRecorder
+from stable_baselines3.common.monitor import Monitor
 import argparse
 import gym
 import datetime
@@ -37,7 +39,7 @@ options = {
     "REPLAY_START_SIZE" : 10000,#,200,#
     "RBUF_CAPACITY" : 10**6,
     "TEST": False,
-    "ENV" : "HalfCheetahPyBulletEnv-v0",#Pendulum-v0"#""Pendulum-v0"#"Walker2DPyBulletEnv-v0" #"InvertedDoublePendulumPyBulletEnv-v0"#"BipedalWalker-v3"#
+    "ENV" : "HalfCheetahBulletEnv-v0",#Pendulum-v0"#""Pendulum-v0"#"Walker2DPyBulletEnv-v0" #"InvertedDoublePendulumPyBulletEnv-v0"#"BipedalWalker-v3"#
     "N_AGENTS": 4,
     "BASESAVELOC": "./agents/",
     "SAVEDIR": datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'),
@@ -91,6 +93,7 @@ def add_args():
     parser.add_argument("--basedir", type=str, default=options["BASESAVELOC"])
     parser.add_argument("--savedir", type=str, default=options["SAVEDIR"])
     parser.add_argument("--log-interval", type=int, default=options["LOGINTERVAL"])
+    parser.add_argument("--track-video", action='store_true')
 
     parser.add_argument(
         "--policy-output-scale",
@@ -109,21 +112,22 @@ def add_args():
     return parser
 
 
-def make_env(env_str, is_test):
-    env = gym.make(env_str)
+def make_env(seed):
+    env = gym.make(args.env)
     # Unwrap TimeLimit wrapper TODO understand why
     # assert isinstance(env, gym.wrappers.TimeLimit)
     # env = env.env
     # Use different random seeds for train and test envs
-    env_seed = args.seed if is_test else args.seed - 1
+    env_seed = seed
     env.seed(env_seed)
-    env._max_episode_steps = 1e6 # see https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/sac.yml
-    # Cast observations to float32 because our model uses float32
-    # if args.monitor:
-    #     env = pfrl.wrappers.Monitor(env, args.outdir)
+    #env._max_episode_steps = 1e4 # see https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/sac.yml
+    env = Monitor(env)
     if args.render_train:
         env.render()
-    return env
+
+    def return_env():
+        return env
+    return return_env
 
 
 def create_sac_agents(env, num_agents):
@@ -132,18 +136,19 @@ def create_sac_agents(env, num_agents):
         # hps taken from https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/sac.yml
         agent = SAC("MlpPolicy", env, policy_kwargs=dict(log_std_init=-3, net_arch=[400, 300]), verbose=1,
                     buffer_size=300000, batch_size=256, ent_coef='auto', gamma=0.98, tau=0.02, train_freq=8,
-                    learning_starts=10000, use_sde=True, learning_rate=7.3e-4, gradient_steps=8)
+                    learning_starts=10000, use_sde=True, learning_rate=7.3e-4, gradient_steps=8,
+                    tensorboard_log='agents/sac')
         agent_list.append(agent)
     return agent_list
 
 
 def train_single(agent, env_train, env_test, log_interval=1000, savedir='agent'):
     eval_callback = EvalCallback(env_test, best_model_save_path='./agents/',
-                                 log_path='./logs/', eval_freq=1000,
+                                 log_path='./logs/', eval_freq=log_interval,
                                  deterministic=True, render=False)
-    wandb_callback = WandbCallback(gradient_save_freq=1000,
+    wandb_callback = WandbCallback(gradient_save_freq=log_interval,
                                    model_save_path="results/temp",
-                                   verbose=0)
+                                   verbose=2)
     agent.learn(total_timesteps=3e6, callback=[eval_callback, wandb_callback], log_interval=log_interval)
     agent.save(args.basedir + os.sep + 'single_' + savedir)
     rewards = evaluate_policy(agents[0], test_env)
@@ -153,10 +158,15 @@ def train_single(agent, env_train, env_test, log_interval=1000, savedir='agent')
 if __name__ == '__main__':
     parser = add_args()
     args = parser.parse_args()
-    wandb.init(entity='jgu-wandb', config=args, project='peer-learning', monitor_gym=True)
+    run = wandb.init(entity='jgu-wandb', config=args, project='peer-learning', monitor_gym=True, sync_tensorboard=True)
     #train_env = SubprocVecEnv([make_env(args.env, args.test) for i in range(args.num_agents)])
-    train_env = make_vec_env(args.env, n_envs=args.num_agents, seed=0)
-    test_env = make_env(args.env, True)
+    #train_env = make_vec_env(args.env, n_envs=args.num_agents, seed=args.seed+1)
+    train_env = DummyVecEnv([make_env(args.seed)])
+    test_env = DummyVecEnv([make_env(args.seed+1)])
+    if args.track_video:
+        test_env = VecVideoRecorder(test_env, f"videos/{run.id}",
+                                    record_video_trigger=lambda x: x % args.log_interval == 0,
+                                    video_length=200)
     check_args(args)
     agents = create_sac_agents(train_env, args.num_agents)
     train_single(agents[0], train_env, test_env, log_interval=args.log_interval, savedir=args.savedir)
