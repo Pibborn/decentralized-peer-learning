@@ -171,7 +171,7 @@ def create_sac_agents(env, num_agents):
                     buffer_size=30000, batch_size=24, ent_coef='auto',
                     gamma=0.98, tau=0.02, train_freq=8,
                     learning_starts=1000, use_sde=True, learning_rate=4e-4,
-                    gradient_steps=8)
+                    gradient_steps=8, tensorboard_log='agents/dictator')
         agent_list.append(agent)
     return agent_list
 
@@ -183,7 +183,7 @@ def train_dictator(agent, env_train, env_test, log_interval=1000,
                                  deterministic=True, render=False)
     wandb_callback = WandbCallback(gradient_save_freq=1000,
                                    model_save_path="results/temp",
-                                   verbose=0)
+                                   verbose=2)
     agent.learn(total_timesteps=args.steps,
                 callback=[eval_callback, wandb_callback],
                 log_interval=log_interval)
@@ -196,7 +196,7 @@ if __name__ == '__main__':
     parser = add_args()
     args = parser.parse_args()
 
-    wandb.init(entity='jgu-wandb', config=args, project='peer-learning', monitor_gym=True)
+    wandb.init(entity='jgu-wandb', config=args, project='peer-learning', monitor_gym=True, sync_tensorboard=True)
     train_env = SumReward(SubprocVecEnv([env_func(args.env, args.test) for i in
                                range(args.num_agents)]))
     test_env = SumReward(SubprocVecEnv([env_func(args.env, False) for i in range(
