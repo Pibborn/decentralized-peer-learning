@@ -3,8 +3,8 @@ import numpy as np
 from stable_baselines3 import SAC
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.callbacks import EvalCallback
-from stable_baselines3.common.vec_env.base_vec_env import VecEnvWrapper
 from stable_baselines3.common.vec_env import SubprocVecEnv
+from stable_baselines3.common.monitor import Monitor
 import argparse
 import gym
 from gym.spaces import Box
@@ -112,25 +112,21 @@ def add_args():
     return parser
 
 
-def make_env(env_str, is_test):
-    env = gym.make(env_str)
+def make_env(seed):
+    env = gym.make(args.env)
     # Unwrap TimeLimit wrapper TODO understand why
     # assert isinstance(env, gym.wrappers.TimeLimit)
     # env = env.env
     # Use different random seeds for train and test envs
-    env_seed = args.seed if is_test else args.seed - 1
-    env.seed(env_seed)
+    env.seed(seed)
     # env._max_episode_steps = 1e6 # see https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/sac.yml
-    # Cast observations to float32 because our model uses float32
-    # if args.monitor:
-    #     env = pfrl.wrappers.Monitor(env, args.outdir)
+    env = Monitor(env)
     if args.render_train:
         env.render()
-    return env
 
-
-def env_func(env_str, is_test):
-    return lambda: make_env(env_str, is_test)
+    def return_env():
+        return env
+    return return_env
 
 
 class SumReward(gym.Env):
@@ -165,9 +161,8 @@ def create_sac_agents(env, num_agents):
     agent_list = []
     for i in range(num_agents):
         # hps taken from https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/sac.yml
-        agent = SAC("MlpPolicy", env, policy_kwargs=dict(log_std_init=-3,
-                                                         net_arch=[100, 100]),
-                    verbose=1,
+        agent = SAC("MlpPolicy", env, verbose=1,
+                    policy_kwargs=dict(log_std_init=-3, net_arch=[100, 100]),
                     buffer_size=30000, batch_size=24, ent_coef='auto',
                     gamma=0.98, tau=0.02, train_freq=8,
                     learning_starts=1000, use_sde=True, learning_rate=4e-4,
@@ -177,18 +172,18 @@ def create_sac_agents(env, num_agents):
 
 
 def train_dictator(agent, env_train, env_test, log_interval=1000,
-                savedir='agent'):
+                   savedir='agent'):
     eval_callback = EvalCallback(env_test, best_model_save_path='./agents/',
-                                 log_path='./logs/', eval_freq=1000,
+                                 log_path='./logs/', eval_freq=log_interval,
                                  deterministic=True, render=False)
-    wandb_callback = WandbCallback(gradient_save_freq=1000,
+    wandb_callback = WandbCallback(gradient_save_freq=log_interval,
                                    model_save_path="results/temp",
                                    verbose=2)
     agent.learn(total_timesteps=args.steps,
                 callback=[eval_callback, wandb_callback],
                 log_interval=log_interval)
-    agent.save(args.basedir + os.sep + 'single_' + savedir)
-    rewards = evaluate_policy(agents[0], test_env)
+    agent.save(args.basedir + os.sep + 'dictator_' + savedir)
+    rewards = evaluate_policy(agents[0], env_test)
     print(rewards)
 
 
@@ -196,11 +191,13 @@ if __name__ == '__main__':
     parser = add_args()
     args = parser.parse_args()
 
-    wandb.init(entity='jgu-wandb', config=args, project='peer-learning', monitor_gym=True, sync_tensorboard=True)
-    train_env = SumReward(SubprocVecEnv([env_func(args.env, args.test) for i in
-                               range(args.num_agents)]))
-    test_env = SumReward(SubprocVecEnv([env_func(args.env, False) for i in range(
-        args.num_agents)]))
+    wandb.init(entity='jgu-wandb', config=vars(args),
+               project='peer-learning',
+               monitor_gym=True,  sync_tensorboard=True)
+    train_env = SumReward(SubprocVecEnv(
+        [make_env(args.seed) for i in range(args.num_agents)]))
+    test_env = SumReward(SubprocVecEnv(
+        [make_env(args.seed + 1) for i in range( args.num_agents)]))
 
     check_args(args)
     agents = create_sac_agents(train_env, 1)
