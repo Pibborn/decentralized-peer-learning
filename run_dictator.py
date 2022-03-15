@@ -34,17 +34,18 @@ options = {
     "TRUST_LR": 0.001,
     "RENDER_TRAIN": 0,
     "GPU": -1,
-    "STEPS": 300_000,#3_000_000,
+    "STEPS": 3_000_000,
     "EVAL_INTERVAL": 1,
     "EVAL_N_RUNS": 10,
-    "REPLAY_START_SIZE" : 10000,#,200,#
-    "RBUF_CAPACITY": 10**6,
+    "REPLAY_START_SIZE": 10_000,
+    "RBUF_CAPACITY": 300_000,
     "TEST": False,
-    "ENV": "HalfCheetahPyBulletEnv-v0",#"Pendulum-v0"#"Walker2DPyBulletEnv-v0"#"InvertedDoublePendulumPyBulletEnv-v0"#"BipedalWalker-v3"#
-    "N_AGENTS": 1,
+    "ENV": "HalfCheetahBulletEnv-v0",
+    "N_AGENTS": 3,
     "BASESAVELOC": "./agents/",
     "SAVEDIR": datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'),
-    "LOGINTERVAL": 1000
+    "LOGINTERVAL": 10_000,
+    "BATCH_SIZE": 100,
 }
 
 
@@ -95,20 +96,20 @@ def add_args():
     parser.add_argument("--savedir", type=str, default=options["SAVEDIR"])
     parser.add_argument("--log-interval", type=int, default=options["LOGINTERVAL"])
 
-    parser.add_argument(
-        "--policy-output-scale",
-        type=float,
-        default=1.0,
-        help="Weight initialization scale of policy output.",
-    )
+    parser.add_argument("--policy-output-scale",
+                        type=float,
+                        default=1.0,
+                        help="Weight initialization scale of policy output.")
 
-    parser.add_argument(
-        "--replay-start-size",
-        type=int,
-        default=options["REPLAY_START_SIZE"],
-        help="Minimum replay buffer size before " + "performing gradient updates.",
-    )
-    parser.add_argument("--batch-size", type=int, default=100, help="Minibatch size")
+    parser.add_argument("--replay-start-size",
+                        type=int,
+                        default=options["REPLAY_START_SIZE"],
+                        help="Minimum replay buffer size before performing "
+                             "gradient updates.")
+
+    parser.add_argument("--batch-size", type=int,
+                        default=options["BATCH_SIZE"],
+                        help="Minibatch size")
     return parser
 
 
@@ -153,7 +154,8 @@ class SumReward(gym.Env):
         return self.env.render()
 
     def step(self, action: np.ndarray):
-        o, r, done, infos = self.env.step(np.reshape(action, (1, -1)))
+        o, r, done, infos = self.env.step(np.reshape(action,
+                                                     (self.env.num_envs, -1)))
         return np.reshape(o, -1), r.mean(), np.any(done), infos[0]
 
 
@@ -163,9 +165,12 @@ def create_sac_agents(env, num_agents):
         # hps taken from https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/sac.yml
         agent = SAC("MlpPolicy", env, verbose=1,
                     policy_kwargs=dict(log_std_init=-3, net_arch=[400, 300]),
-                    buffer_size=300000, batch_size=256, ent_coef='auto',
+                    buffer_size=args.rbuf_capacity,
+                    batch_size=args.batch_size,
+                    ent_coef='auto',
                     gamma=0.98, tau=0.02, train_freq=8,
-                    learning_starts=10000, use_sde=True, learning_rate=7.3e-4,
+                    learning_starts=args.replay_start_size, use_sde=True,
+                    learning_rate=7.3e-4,
                     gradient_steps=8, tensorboard_log='agents/dictator',
                     device='cuda')
         agent_list.append(agent)
