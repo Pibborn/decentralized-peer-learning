@@ -22,8 +22,8 @@ options = {
     "USE_PRIO": 0,
     "SAVE_NAME": "temp",
     "LOAD": 0,
-    "HIDDEN_SIZE": 20,
-    "AGENT_COUNT": 5,
+    "HIDDEN_SIZE": 256,
+    "AGENT_COUNT": 4,  # is that ever used?
     "PEER_LEARNING": 1,
     "USE_AGENT_VALUE": 0,
     "USE_TRUST": 1,
@@ -34,14 +34,14 @@ options = {
     "TRUST_LR": 0.001,
     "RENDER_TRAIN": 0,
     "GPU": -1,
-    "STEPS": 500_000,
+    "STEPS": 300_000,#3_000_000,
     "EVAL_INTERVAL": 1,
-    "EVAL_N_RUNS": 20,
+    "EVAL_N_RUNS": 10,
     "REPLAY_START_SIZE" : 10000,#,200,#
     "RBUF_CAPACITY": 10**6,
     "TEST": False,
-    "ENV": "Pendulum-v0",#"#HalfCheetahPyBulletEnv-v0""Pendulum-v0"#"Walker2DPyBulletEnv-v0" #"InvertedDoublePendulumPyBulletEnv-v0"#"BipedalWalker-v3"#
-    "N_AGENTS": 6,
+    "ENV": "HalfCheetahPyBulletEnv-v0",#"Pendulum-v0"#"Walker2DPyBulletEnv-v0"#"InvertedDoublePendulumPyBulletEnv-v0"#"BipedalWalker-v3"#
+    "N_AGENTS": 1,
     "BASESAVELOC": "./agents/",
     "SAVEDIR": datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S'),
     "LOGINTERVAL": 1000
@@ -153,7 +153,7 @@ class SumReward(gym.Env):
         return self.env.render()
 
     def step(self, action: np.ndarray):
-        o, r, done, infos = self.env.step(np.reshape(action, (-1, 1)))
+        o, r, done, infos = self.env.step(np.reshape(action, (1, -1)))
         return np.reshape(o, -1), r.mean(), np.any(done), infos[0]
 
 
@@ -162,11 +162,12 @@ def create_sac_agents(env, num_agents):
     for i in range(num_agents):
         # hps taken from https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/sac.yml
         agent = SAC("MlpPolicy", env, verbose=1,
-                    policy_kwargs=dict(log_std_init=-3, net_arch=[100, 100]),
-                    buffer_size=30000, batch_size=24, ent_coef='auto',
+                    policy_kwargs=dict(log_std_init=-3, net_arch=[400, 300]),
+                    buffer_size=300000, batch_size=256, ent_coef='auto',
                     gamma=0.98, tau=0.02, train_freq=8,
-                    learning_starts=1000, use_sde=True, learning_rate=4e-4,
-                    gradient_steps=8, tensorboard_log='agents/dictator')
+                    learning_starts=10000, use_sde=True, learning_rate=7.3e-4,
+                    gradient_steps=8, tensorboard_log='agents/dictator',
+                    device='cuda')
         agent_list.append(agent)
     return agent_list
 
@@ -180,6 +181,7 @@ def train_dictator(agent, env_train, env_test, log_interval=1000,
                                    model_save_path="results/temp",
                                    verbose=2)
     agent.learn(total_timesteps=args.steps,
+                # callback=[eval_callback],
                 callback=[eval_callback, wandb_callback],
                 log_interval=log_interval)
     agent.save(args.basedir + os.sep + 'dictator_' + savedir)
