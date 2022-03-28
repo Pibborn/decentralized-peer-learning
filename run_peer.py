@@ -22,8 +22,8 @@ options = {
     "SWITCH_RATIO": 1,
     "SAVE_NAME": "Peers",
     "LOAD": False,
-    "NET_ARCH": [800, 600],
-    "AGENT_COUNT": 2,
+    "NET_ARCH": [400, 300],
+    "AGENT_COUNT": 4,
     "PEER_LEARNING": True,
     "USE_AGENT_VALUE": True,
     "USE_TRUST": True,
@@ -34,14 +34,14 @@ options = {
     "TRUST_LR": 0.001,
     "DEVICE": "auto",
     "STEPS": 3_000_000,
-    "EVAL_INTERVAL": 1_000,
+    "EVAL_INTERVAL": 10_000,
     "EVAL_N_RUNS": 10,
     "BUFFER_START_SIZE": 1_000,
     "BUFFER_SIZE": 1_000_000,
     "ENV": "HalfCheetahBulletEnv-v0",
     "BATCH_SIZE": 100,
-    "MIN_EPOCH_LEN": 1_000,
-    "WANDB": "offline",
+    "MIN_EPOCH_LEN": 10_000,
+    "WANDB": "online",
 }
 
 # create arg parser
@@ -115,8 +115,11 @@ experiment_folder.mkdir(exist_ok=True)
 
 # init wandb
 wandb.tensorboard.patch(root_logdir=str(experiment_folder))
-run = wandb.init(entity='jgu-wandb', config=args, project='peer-learning',
+run = wandb.init(entity='jgu-wandb', config=args.__dict__,
+                 project='peer-learning',
                  monitor_gym=True, sync_tensorboard=True,
+                 notes=f"Peer Learning with {args.agent_count} agents on "
+                       f"the {args.env[:-3]} environment.",
                  dir=str(experiment_folder), mode=args.wandb)
 
 # TODO pickle args and config (or maybe wand is sufficient)
