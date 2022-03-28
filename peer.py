@@ -1,0 +1,276 @@
+from abc import ABC
+from typing import Type
+import itertools as it
+
+import numpy as np
+import torch
+
+from suggestionbuffer import SuggestionBuffer
+from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
+
+
+class PeerGroup:
+    def __init__(self, peers, use_agent_values=False, init_agent_values=200.,
+                 lr=0.95, switch_ratio=0):
+        """ switch_ratio == 0 means no switching """
+        self.peers = peers
+        self.lr = lr
+        self.switch_ratio = switch_ratio
+
+        if use_agent_values:
+            self.agent_values = np.full(len(peers), init_agent_values,
+                                        dtype=np.float32)
+            key = "agent_values"
+
+        for peer in peers:
+            peer.n_peers = len(peers)
+            peer.group = self
+
+            # setup agent values
+            if use_agent_values:
+                peer.peer_values[key] = self.agent_values  # noqa
+                peer.peer_value_functions[key] = self._update_agent_values
+
+    def _update_agent_values(self, batch_size=10):
+        """ Updates the agent values with samples from the peers' buffers"""
+        targets = np.zeros_like(self.peers, dtype=np.float32)
+        counts = np.zeros_like(self.peers, dtype=np.float32)
+
+        for peer in self.peers:
+            bs = batch_size // len(self.peers)
+            batch = peer.buffer.sample(bs)
+            if batch is None:  # buffer not sufficiently full
+                return
+
+            obs = np.array([b[3] for b in batch]).reshape(bs, -1)
+            v = peer.value(obs)
+
+            for i in range(len(batch)):
+                target = batch[i][0] + peer.gamma * v[i]
+                counts[batch[i][2]] += 1
+                targets[batch[i][2]] += target
+
+        # ensure counts are >= 1, targets are still 0
+        counts[counts == 0] = 1
+
+        targets /= counts
+        self.agent_values += self.lr * (targets - self.agent_values)
+
+    def learn(self, n_epochs, max_epoch_len, callbacks, **kwargs):
+        assert len(callbacks) == len(self.peers)
+        # more solo epochs
+        boost_single = 0 < self.switch_ratio < 1
+        if boost_single:
+            self.switch_ratio = 1 / self.switch_ratio
+
+        for i in range(n_epochs):
+            # ratio of 0 never switches
+            solo_epoch = i % (1 + self.switch_ratio) == 1
+            if boost_single:
+                solo_epoch = not solo_epoch
+
+            for p, peer, callback in zip(it.count(), self.peers, callbacks):
+                peer.learn(solo_epoch, total_timesteps=max_epoch_len,
+                           callback=callback, tb_log_name=f"Peer{p}",
+                           reset_num_timesteps=False, **kwargs)
+
+
+def make_peer_class(cls: Type[OffPolicyAlgorithm]):
+    """ Creates a mixin with the corresponding algorithm class
+    :param cls: The learning algorithm (needs to have a callable critic)
+    :return: The mixed in peer agent class
+    """
+
+    class Peer(cls, ABC):
+        """ Abstract Peer class
+        needs to be mixed with a suitable algorithm """
+        def __init__(self, temperature, temp_decay, algo_args, env_func,
+                     use_trust=False, use_critic=False, init_trust_values=200,
+                     buffer_size=1000, follow_steps=10,
+                     use_trust_buffer=True, solo_training=False):
+            super(Peer, self).__init__(**algo_args, env=env_func())
+
+            self.solo_training = solo_training
+            self.init_values = dict()
+            self.peer_values = dict()
+            self.peer_value_functions = dict()
+
+            self.buffer = SuggestionBuffer(buffer_size)
+            self.__n_peers = 1
+            self.group = None
+
+            if not solo_training:
+                self.use_critic = use_critic
+
+                if use_trust:
+                    self.trust_values = np.array([])
+                    self.init_values["trust"] = init_trust_values
+                    self.peer_value_functions["trust"] = self._update_trust
+
+                self.use_buffer_for_trust = use_trust_buffer
+
+                self.epoch = 0
+                self.temperature = temperature
+                self.temp_decay = temp_decay
+
+                self.follow_steps = follow_steps
+                self.followed_peer = None
+                self.steps_followed = 0
+
+        @property
+        def n_peers(self):
+            return self.__n_peers
+
+        @n_peers.setter
+        def n_peers(self, n_peers):
+            self.__n_peers = n_peers
+
+            # Also reset the trust values
+            if "trust" in self.init_values.keys():
+                self.trust_values = np.full(self.__n_peers,
+                                            self.init_values["trust"],
+                                            dtype=np.float32)
+                self.peer_values["trust"] = self.trust_values
+
+        def critique(self, observations, actions) -> torch.Tensor:
+            """ Evaluates the actions with the critic. """
+
+            a = torch.as_tensor(actions, device=self.device)
+            o = torch.as_tensor(observations, device=self.device)
+            with torch.no_grad():
+                # Compute the next Q values: min over all critic targets
+                # TODO I think here we can collect and sum up the peers'
+                #  evaluation instead of the own critic to create the new
+                #  dictator
+                q_values = torch.cat(self.critic(o, a), dim=1)  # noqa
+                q_values, _ = torch.min(q_values, dim=1, keepdim=True)
+                return q_values
+
+        def get_action(self, obs):
+            # get actions
+            actions = torch.empty(0, self.env.action_space.shape[0],
+                                  device=self.device)
+
+            for peer in self.group.peers:
+                if peer != self:
+                    # if the critique method is used, the actions are
+                    # greedy otherwise, they have exploration
+                    action, _ = peer.predict(obs,
+                                             deterministic=self.use_critic)
+
+                else:  # self
+                    # include exploration
+                    action, _ = peer.actor.predict(obs, False)
+
+                action = torch.as_tensor(action, device=self.device)
+                actions = torch.cat((actions, action), dim=0)
+
+            # critique
+            o = np.tile(obs, (self.n_peers, 1))
+
+            q_values = self.critique(o, actions).cpu().numpy().reshape(-1)
+
+            values = self.__normalize(q_values)
+
+            use_value = self.use_critic
+
+            for key in self.peer_values.keys():
+                values += self.__normalize(self.peer_values[key])
+                use_value = True
+
+            if use_value:
+                # sample action from probability
+                temp = self.temperature * np.exp(-self.temp_decay * self.epoch)
+                p = np.exp(values / temp)
+                p /= np.sum(p)
+                self.followed_peer = np.random.choice(self.n_peers, p=p)
+            else:
+                # act greedily
+                self.followed_peer = np.argmax(values)
+
+            action = actions[self.followed_peer].view(1, -1).cpu().numpy()
+
+            return action, action
+
+        @staticmethod
+        def __normalize(values):
+            return values / np.max(np.abs(values))
+
+        def value(self, observations) -> np.ndarray:
+            """ Calculates the value of the observations """
+            actions, _ = self.actor.predict(observations, False)
+            observations = torch.as_tensor(observations, device=self.device)
+            return self.critique(observations, actions).cpu().numpy()
+
+        def _update_trust(self, batch_size=10):
+            """ Updates the trust values with samples from the buffer """
+            if self.use_buffer_for_trust:
+                batch = self.buffer.sample(batch_size)
+            else:
+                batch = self.buffer.latest()
+            if batch is None:  # buffer not sufficiently full
+                return
+
+            obs = np.array([b[3] for b in batch]).reshape(batch_size, -1)
+            v = self.value(obs)
+
+            targets = np.zeros(self.n_peers)
+            counts = np.zeros(self.n_peers)
+            for i in range(len(batch)):
+                target = batch[i][0] + self.gamma * v[i]
+                counts[batch[i][2]] += 1
+                targets[batch[i][2]] += target
+
+            # ensure counts are >= 1, targets are still 0
+            counts[counts == 0] = 1
+
+            targets /= counts
+            self.trust_values += self.group.lr * (targets - self.trust_values)
+
+        def _on_step(self):
+            """ Adds updates of the peer values, e.g., trust or agent values"""
+            super(Peer, self)._on_step()  # noqa
+
+            # update values, e.g., trust and agent values after ever step
+            for key in self.peer_values.keys():
+                self.peer_value_functions[key]()
+
+        def _store_transition(self, replay_buffer, buffer_action, new_obs,
+                              reward, dones, infos):
+            """ Adds suggestion buffer handling """
+            super(Peer, self)._store_transition(replay_buffer, # noqa
+                                                buffer_action,  new_obs,
+                                                reward, dones, infos)
+
+            # store transition in suggestion buffer as well
+            self.buffer.add(reward, buffer_action, self.followed_peer, new_obs)
+
+        def _predict_train(self, observation, state=None,
+                           episode_start=None, deterministic=False):
+            if deterministic:
+                return super(Peer, self).predict(observation, state=state,
+                                                 episode_start=episode_start,
+                                                 deterministic=deterministic)
+            else:
+                return self.get_action(observation)
+
+        def learn(self, solo_episode=False, **kwargs):
+            """ Adds action selection with help of peers"""
+            predict = self.predict  # safe for later
+
+            # use peer suggestions only when wanted
+            if not (self.solo_training or solo_episode):
+                self.predict = self._predict_train
+
+            result = super(Peer, self).learn(**kwargs)
+
+            self.predict = predict  # noqa
+            return result
+
+        def _excluded_save_params(self):
+            ex_list = super(Peer, self)._excluded_save_params()
+            ex_list.extend(["peer_value_functions", "peer_values",
+                            "group", "predict"])
+            return ex_list
+
+    return Peer
