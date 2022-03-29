@@ -102,6 +102,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             self.followed_peer = None
             self.__n_peers = 1
             self.group = None
+            self.epoch = 0
 
             if not solo_training:
                 self.use_critic = use_critic
@@ -113,10 +114,10 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
 
                 self.use_buffer_for_trust = use_trust_buffer
 
-                self.epoch = 0
                 self.temperature = temperature
                 self.temp_decay = temp_decay
 
+                # TODO implement follow steps (not working in Aaron's code)
                 self.follow_steps = follow_steps
                 self.steps_followed = 0
 
