@@ -64,7 +64,7 @@ class PeerGroup:
             self.switch_ratio = 1 / self.switch_ratio
 
         for i in range(n_epochs):
-            # ratio of 0 never switches
+            # ratio of 0 never performs a solo episode
             solo_epoch = i % (1 + self.switch_ratio) == 1
             if boost_single:
                 solo_epoch = not solo_epoch
@@ -72,7 +72,10 @@ class PeerGroup:
             for p, peer, callback in zip(it.count(), self.peers, callbacks):
                 peer.learn(solo_epoch, total_timesteps=max_epoch_len,
                            callback=callback, tb_log_name=f"Peer{p}",
-                           reset_num_timesteps=False, **kwargs)
+                           reset_num_timesteps=False,
+                           log_interval=None, **kwargs)
+                # update epoch for temperature decay
+                peer.epoch += 1
 
 
 def make_peer_class(cls: Type[OffPolicyAlgorithm]):
@@ -132,44 +135,31 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                                             dtype=np.float32)
                 self.peer_values["trust"] = self.trust_values
 
-        def critique(self, observations, actions) -> torch.Tensor:
+        def critique(self, observations, actions) -> np.array:
             """ Evaluates the actions with the critic. """
-
-            a = torch.as_tensor(actions, device=self.device)
-            o = torch.as_tensor(observations, device=self.device)
             with torch.no_grad():
+                a = torch.as_tensor(actions, device=self.device)
+                o = torch.as_tensor(observations, device=self.device)
+
                 # Compute the next Q values: min over all critic targets
-                # TODO I think here we can collect and sum up the peers'
-                #  evaluation instead of the own critic to create the new
-                #  dictator
                 q_values = torch.cat(self.critic(o, a), dim=1)  # noqa
                 q_values, _ = torch.min(q_values, dim=1, keepdim=True)
-                return q_values
+                return q_values.cpu().numpy()
 
         def get_action(self, obs):
             # get actions
-            actions = torch.empty(0, self.env.action_space.shape[0],
-                                  device=self.device)
-
+            actions = []
             for peer in self.group.peers:
-                if peer != self:
-                    # if the critique method is used, the actions are
-                    # greedy otherwise, they have exploration
-                    action, _ = peer.predict(obs,
-                                             deterministic=self.use_critic)
-
-                else:  # self
-                    # include exploration
-                    action, _ = peer.actor.predict(obs, False)
-
-                action = torch.as_tensor(action, device=self.device)
-                actions = torch.cat((actions, action), dim=0)
+                # self always uses exploration, the suggestions of the other
+                # peers only do if the critic method isn't used.
+                det = peer != self and self.use_critic
+                action, _ = peer.policy.predict(obs, deterministic=det)
+                actions.append(action)
+            actions = np.asarray(actions).squeeze(1)
 
             # critique
-            o = np.tile(obs, (self.n_peers, 1))
-
-            q_values = self.critique(o, actions).cpu().numpy().reshape(-1)
-
+            observations = np.tile(obs, (self.n_peers, 1))
+            q_values = self.critique(observations, actions).reshape(-1)
             values = self.__normalize(q_values)
 
             use_value = self.use_critic
@@ -188,7 +178,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                 # act greedily
                 self.followed_peer = np.argmax(values)
 
-            action = actions[self.followed_peer].view(1, -1).cpu().numpy()
+            action = actions[self.followed_peer].reshape(1, -1)
 
             return action, action
 
@@ -198,9 +188,8 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
 
         def value(self, observations) -> np.ndarray:
             """ Calculates the value of the observations """
-            actions, _ = self.actor.predict(observations, False)
-            observations = torch.as_tensor(observations, device=self.device)
-            return self.critique(observations, actions).cpu().numpy()
+            actions, _ = self.policy.predict(observations, False)
+            return self.critique(observations, actions)
 
         def _update_trust(self, batch_size=10):
             """ Updates the trust values with samples from the buffer """
@@ -238,8 +227,8 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
         def _store_transition(self, replay_buffer, buffer_action, new_obs,
                               reward, dones, infos):
             """ Adds suggestion buffer handling """
-            super(Peer, self)._store_transition(replay_buffer, # noqa
-                                                buffer_action,  new_obs,
+            super(Peer, self)._store_transition(replay_buffer,  # noqa
+                                                buffer_action, new_obs,
                                                 reward, dones, infos)
 
             # store transition in suggestion buffer as well
@@ -248,9 +237,9 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
         def _predict_train(self, observation, state=None,
                            episode_start=None, deterministic=False):
             if deterministic:
-                return super(Peer, self).predict(observation, state=state,
-                                                 episode_start=episode_start,
-                                                 deterministic=deterministic)
+                return self.policy.predict(observation, state=state,
+                                           episode_start=episode_start,
+                                           deterministic=deterministic)
             else:
                 return self.get_action(observation)
 
