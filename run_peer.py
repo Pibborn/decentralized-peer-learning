@@ -111,7 +111,7 @@ assert (option_on and args.peer_learning) or not option_on
 # create results/experiments folder
 experiment_folder = Path.cwd().joinpath("Experiments", args.save_name,
                                         wandb.util.generate_id())
-experiment_folder.mkdir(exist_ok=True)
+experiment_folder.mkdir(exist_ok=True, parents=True)
 
 # init wandb
 wandb.tensorboard.patch(root_logdir=str(experiment_folder))
