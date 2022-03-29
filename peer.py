@@ -119,7 +119,6 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                 self.temperature = temperature
                 self.temp_decay = temp_decay
 
-                # TODO implement follow steps (not working in Aaron's code)
                 self.follow_steps = follow_steps
                 self.steps_followed = 0
 
@@ -150,6 +149,14 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                 return q_values.cpu().numpy()
 
         def get_action(self, obs):
+            # follow peer for defined number of steps
+            followed_steps = self.steps_followed
+            self.steps_followed += 1
+            self.steps_followed %= self.follow_steps
+            if 0 < followed_steps:
+                peer = self.group.peers[self.followed_peer]
+                action, _ = peer.policy.predict(obs, deterministic=True)
+                return action, None
             # get actions
             actions = []
             for peer in self.group.peers:
