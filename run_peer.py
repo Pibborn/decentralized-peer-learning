@@ -18,7 +18,6 @@ from peer import PeerGroup, make_peer_class
 options = {
     "FOLLOW_STEPS": 1,
     "MIX_AGENTS": False,
-    "SWITCH_TRAIN": 1,
     "SWITCH_RATIO": 1,
     "SAVE_NAME": "Peers",
     "LOAD": False,
@@ -41,7 +40,7 @@ options = {
     "ENV": "HalfCheetahBulletEnv-v0",
     "BATCH_SIZE": 100,
     "MIN_EPOCH_LEN": 10_000,
-    "WANDB": "online",
+    "WANDB": "disabled",
 }
 
 # create arg parser
@@ -175,7 +174,7 @@ for i in range(args.agent_count):
                                     verbose=2)])
 
 peer_group = PeerGroup(peers, use_agent_values=args.use_agent_value,
-                       lr=args.trust_lr)
+                       lr=args.trust_lr, switch_ratio=args.switch_ratio)
 
 # TODO load or not
 
