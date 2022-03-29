@@ -13,10 +13,16 @@ def make_dictator_class(cls: Type[OffPolicyAlgorithm]):
     :return: The mixed in dictator agent class
     """
     class Dictator(make_peer_class(cls)):
-        def __init__(self, temperature, temp_decay, algo_args, env_fun):
-            super(Dictator, self).__init__(temperature, temp_decay, algo_args,
-                                           env_fun, use_trust=False,
-                                           use_critic=False)
+        def __init__(self, temperature, temp_decay, algo_args, env_func,
+                     use_critic=True):
+            super(Dictator, self).__init__(temperature=temperature,
+                                           temp_decay=temp_decay,
+                                           use_critic=use_critic,
+                                           algo_args=algo_args,
+                                           solo_training=False,
+                                           env_func=env_func,
+                                           use_trust=True,
+                                           follow_steps=1)
 
         def predict(self, observation, **_):
             return self.get_action(observation)
@@ -29,7 +35,7 @@ def make_dictator_class(cls: Type[OffPolicyAlgorithm]):
                 o = torch.as_tensor(observations, device=self.device)
 
                 # instead of using only self's critic, sum over all peers
-                values = np.zeros_like(a)
+                values = np.zeros((a.shape[0], 1), dtype=np.float32)
                 for peer in self.group.peers:
                     # Compute the next Q values: min over all critic targets
                     q_values = torch.cat(peer.critic(o, a), dim=1)  # noqa
@@ -37,8 +43,9 @@ def make_dictator_class(cls: Type[OffPolicyAlgorithm]):
                     values += q_values.cpu().numpy()
                 return values
 
-        def learn(self, **kwargs):
+        def learn(self, _, **kwargs):
             # use again the basic learn function since we predict the action
             # always together with our peers
             return OffPolicyAlgorithm.learn(self, **kwargs)
 
+    return Dictator
