@@ -92,6 +92,8 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                      buffer_size=1000, follow_steps=10,
                      use_trust_buffer=True, solo_training=False):
             super(Peer, self).__init__(**algo_args, env=env_func())
+            # create noise matrix on the correct device
+            self.actor.reset_noise(self.env.num_envs)
 
             self.solo_training = solo_training
             self.init_values = dict()
