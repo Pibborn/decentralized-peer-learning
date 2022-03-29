@@ -115,7 +115,7 @@ algo_args = dict(policy="MlpPolicy", verbose=1,
                  batch_size=args.batch_size,
                  ent_coef='auto', gamma=0.98, tau=0.02, train_freq=64,
                  learning_starts=args.buffer_start_size, use_sde=True,
-                 learning_rate=7.3e-4, gradient_steps=8,
+                 learning_rate=7.3e-4, gradient_steps=64,
                  tensorboard_log=str(experiment_folder),
                  device=args.device)
 
