@@ -16,7 +16,7 @@ class SuggestionBuffer:
         # else return None
 
     def latest(self):
-        return self.buffer[-1]
+        return [self.buffer[-1]]
 
 
 if __name__ == "__main__":

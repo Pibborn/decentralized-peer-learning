@@ -99,6 +99,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             self.peer_value_functions = dict()
 
             self.buffer = SuggestionBuffer(buffer_size)
+            self.followed_peer = None
             self.__n_peers = 1
             self.group = None
 
@@ -117,7 +118,6 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                 self.temp_decay = temp_decay
 
                 self.follow_steps = follow_steps
-                self.followed_peer = None
                 self.steps_followed = 0
 
         @property
@@ -180,7 +180,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
 
             action = actions[self.followed_peer].reshape(1, -1)
 
-            return action, action
+            return action, None
 
         @staticmethod
         def __normalize(values):
@@ -197,6 +197,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                 batch = self.buffer.sample(batch_size)
             else:
                 batch = self.buffer.latest()
+                batch_size = 1
             if batch is None:  # buffer not sufficiently full
                 return
 
@@ -205,7 +206,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
 
             targets = np.zeros(self.n_peers)
             counts = np.zeros(self.n_peers)
-            for i in range(len(batch)):
+            for i in range(batch_size):
                 target = batch[i][0] + self.gamma * v[i]
                 counts[batch[i][2]] += 1
                 targets[batch[i][2]] += target
