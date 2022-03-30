@@ -10,9 +10,14 @@ from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 
 
 class PeerGroup:
+    """ A group of peers who train together. """
     def __init__(self, peers, use_agent_values=False, init_agent_values=200.,
                  lr=0.95, switch_ratio=0):
-        """ switch_ratio == 0 means no switching """
+        """
+        :param peers: An iterable of peer agents
+        :param lr: The learning rate for trust and agent values
+        :param switch_ratio: switch_ratio == 0 means no switching
+        """
         self.peers = peers
         self.lr = lr
         self.switch_ratio = switch_ratio
@@ -30,6 +35,8 @@ class PeerGroup:
             if use_agent_values:
                 peer.peer_values[key] = self.agent_values  # noqa
                 peer.peer_value_functions[key] = self._update_agent_values
+                # when using agent values, don't act greedily
+                peer.sample_actions = True
 
     def _update_agent_values(self, batch_size=10):
         """ Updates the agent values with samples from the peers' buffers"""
@@ -57,6 +64,7 @@ class PeerGroup:
         self.agent_values += self.lr * (targets - self.agent_values)
 
     def learn(self, n_epochs, max_epoch_len, callbacks, **kwargs):
+        """ The outer peer learning routine. """
         assert len(callbacks) == len(self.peers)
         # more solo epochs
         boost_single = 0 < self.switch_ratio < 1
@@ -79,14 +87,14 @@ class PeerGroup:
 
 
 def make_peer_class(cls: Type[OffPolicyAlgorithm]):
-    """ Creates a mixin with the corresponding algorithm class
-    :param cls: The learning algorithm (needs to have a callable critic)
-    :return: The mixed in peer agent class
+    """ Creates a mixin with the corresponding algorithm class.
+    :param cls: The learning algorithm (needs to have a callable critic).
+    :return: The mixed in peer agent class.
     """
 
     class Peer(cls, ABC):
         """ Abstract Peer class
-        needs to be mixed with a suitable algorithm """
+        needs to be mixed with a suitable algorithm. """
         def __init__(self, temperature, temp_decay, algo_args, env_func,
                      use_trust=False, use_critic=False, init_trust_values=200,
                      buffer_size=1000, follow_steps=10,
@@ -97,7 +105,9 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
 
             self.solo_training = solo_training
             self.init_values = dict()
+            # store all peer values, e.g., trust and agent values in a dict
             self.peer_values = dict()
+            # store corresponding functions as well
             self.peer_value_functions = dict()
 
             self.buffer = SuggestionBuffer(buffer_size)
@@ -107,15 +117,19 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             self.epoch = 0
 
             if not solo_training:
-                self.use_critic = use_critic
+                # all peers suggest without noise
+                self.greedy_suggestions = use_critic
+                # actions are sampled instead of taken greedily
+                self.sample_actions = use_critic or use_trust
 
                 if use_trust:
                     self.trust_values = np.array([])
                     self.init_values["trust"] = init_trust_values
                     self.peer_value_functions["trust"] = self._update_trust
 
-                self.use_buffer_for_trust = use_trust_buffer
+                    self.use_buffer_for_trust = use_trust_buffer
 
+                # sampling parameters
                 self.temperature = temperature
                 self.temp_decay = temp_decay
 
@@ -149,6 +163,8 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                 return q_values.cpu().numpy()
 
         def get_action(self, obs):
+            """ The core function of peer learning acquires the suggested
+            actions of the peers and chooses one based on the settings. """
             # follow peer for defined number of steps
             followed_steps = self.steps_followed
             self.steps_followed += 1
@@ -157,12 +173,13 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                 peer = self.group.peers[self.followed_peer]
                 action, _ = peer.policy.predict(obs, deterministic=True)
                 return action, None
+
             # get actions
             actions = []
             for peer in self.group.peers:
                 # self always uses exploration, the suggestions of the other
                 # peers only do if the critic method isn't used.
-                det = peer != self and self.use_critic
+                det = peer != self and self.greedy_suggestions
                 action, _ = peer.policy.predict(obs, deterministic=det)
                 actions.append(action)
             actions = np.asarray(actions).squeeze(1)
@@ -172,13 +189,11 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             q_values = self.critique(observations, actions).reshape(-1)
             values = self.__normalize(q_values)
 
-            use_value = self.use_critic
-
+            # calculate peer values, e.g., trust and agent values
             for key in self.peer_values.keys():
                 values += self.__normalize(self.peer_values[key])
-                use_value = True
 
-            if use_value:
+            if self.sample_actions:
                 # sample action from probability
                 temp = self.temperature * np.exp(-self.temp_decay * self.epoch)
                 p = np.exp(values / temp)
@@ -194,15 +209,16 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
 
         @staticmethod
         def __normalize(values):
+            """ Normalize the values based on their absolute maximum. """
             return values / np.max(np.abs(values))
 
         def value(self, observations) -> np.ndarray:
-            """ Calculates the value of the observations """
+            """ Calculates the value of the observations. """
             actions, _ = self.policy.predict(observations, False)
             return self.critique(observations, actions)
 
         def _update_trust(self, batch_size=10):
-            """ Updates the trust values with samples from the buffer """
+            """ Updates the trust values with samples from the buffer. """
             if self.use_buffer_for_trust:
                 batch = self.buffer.sample(batch_size)
             else:
@@ -228,7 +244,8 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             self.trust_values += self.group.lr * (targets - self.trust_values)
 
         def _on_step(self):
-            """ Adds updates of the peer values, e.g., trust or agent values"""
+            """ Adds updates of the peer values, e.g., trust or agent
+            values. """
             super(Peer, self)._on_step()  # noqa
 
             # update values, e.g., trust and agent values after ever step
@@ -237,7 +254,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
 
         def _store_transition(self, replay_buffer, buffer_action, new_obs,
                               reward, dones, infos):
-            """ Adds suggestion buffer handling """
+            """ Adds suggestion buffer handling. """
             super(Peer, self)._store_transition(replay_buffer,  # noqa
                                                 buffer_action, new_obs,
                                                 reward, dones, infos)
@@ -247,6 +264,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
 
         def _predict_train(self, observation, state=None,
                            episode_start=None, deterministic=False):
+            """ The action selection during training involves the peers. """
             if deterministic:
                 return self.policy.predict(observation, state=state,
                                            episode_start=episode_start,
@@ -255,7 +273,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                 return self.get_action(observation)
 
         def learn(self, solo_episode=False, **kwargs):
-            """ Adds action selection with help of peers"""
+            """ Adds action selection with help of peers. """
             predict = self.predict  # safe for later
 
             # use peer suggestions only when wanted
@@ -268,6 +286,8 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             return result
 
         def _excluded_save_params(self):
+            """ Excludes attributes that are functions. Otherwise, the save
+            method fails. """
             ex_list = super(Peer, self)._excluded_save_params()
             ex_list.extend(["peer_value_functions", "peer_values",
                             "group", "predict"])

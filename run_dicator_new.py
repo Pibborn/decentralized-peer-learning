@@ -12,6 +12,7 @@ from stable_baselines3.common.callbacks import EvalCallback
 import wandb
 from wandb.integration.sb3 import WandbCallback
 
+# rename for convenience
 from peer import PeerGroup as Dictator
 from new_dictator import make_dictator_class
 
@@ -97,8 +98,6 @@ run = wandb.init(entity='jgu-wandb', config=args.__dict__,
                        f"the {args.env[:-3]} environment.",
                  dir=str(experiment_folder), mode=args.wandb)
 
-# TODO pickle args and config (or maybe wand is sufficient)
-
 
 # environment function
 def make_env(seed=0):
@@ -108,7 +107,7 @@ def make_env(seed=0):
     return env
 
 
-# initialize peer group
+# initialize dictator
 algo_args = dict(policy="MlpPolicy", verbose=1,
                  policy_kwargs=dict(log_std_init=-3, net_arch=args.net_arch),
                  buffer_size=args.buffer_size,
@@ -123,7 +122,7 @@ peer_args = dict(temperature=args.T, temp_decay=args.T_decay,
                  algo_args=algo_args, env_func=make_env,
                  use_critic=args.use_critic)
 
-# create Peer classes
+# create Dictator classes
 SACSub = make_dictator_class(SAC)
 TD3Sub = make_dictator_class(TD3)
 
@@ -145,16 +144,15 @@ for i in range(args.agent_count):
                       WandbCallback(gradient_save_freq=args.eval_interval,
                                     verbose=2)])
 
+# create dictator from submissive agents
 dictator = Dictator(subs)
-
-# TODO load or not
 
 # calculate number of epochs based on episode length
 max_episode_steps = max(args.min_epoch_length,
                         gym.spec(args.env).max_episode_steps)
 n_epochs = args.steps // max_episode_steps
 
-# train the peer group
+# train the dictator
 dictator.learn(n_epochs, callbacks=callbacks,
                eval_log_path=str(experiment_folder),
                max_epoch_len=max_episode_steps)

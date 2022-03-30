@@ -121,8 +121,6 @@ run = wandb.init(entity='jgu-wandb', config=args.__dict__,
                        f"the {args.env[:-3]} environment.",
                  dir=str(experiment_folder), mode=args.wandb)
 
-# TODO pickle args and config (or maybe wand is sufficient)
-
 
 # environment function
 def make_env(seed=0):
@@ -175,8 +173,6 @@ for i in range(args.agent_count):
 
 peer_group = PeerGroup(peers, use_agent_values=args.use_agent_value,
                        lr=args.trust_lr, switch_ratio=args.switch_ratio)
-
-# TODO load or not
 
 # calculate number of epochs based on episode length
 max_episode_steps = max(args.min_epoch_length,
