@@ -12,6 +12,7 @@ from stable_baselines3.common.callbacks import EvalCallback
 import wandb
 from wandb.integration.sb3 import WandbCallback
 
+# rename for convenience
 from peer import PeerGroup as Dictator
 from new_dictator import make_dictator_class
 
@@ -22,7 +23,6 @@ options = {
     "LOAD": False,
     "NET_ARCH": [400, 300],
     "AGENT_COUNT": 4,
-    "USE_CRITIC": False,
     "T": 1,
     "T_DECAY": 0,
     "DEVICE": "auto",
@@ -34,7 +34,7 @@ options = {
     "ENV": "HalfCheetahBulletEnv-v0",
     "BATCH_SIZE": 100,
     "MIN_EPOCH_LEN": 10_000,
-    "WANDB": "disabled",
+    "WANDB": "offline",
 }
 
 # create arg parser
@@ -47,8 +47,8 @@ parser.add_argument("--buffer-size", type=int,
                     default=options["BUFFER_SIZE"])
 parser.add_argument("--agent-count", type=int,
                     default=options["AGENT_COUNT"])
-parser.add_argument("--use-critic", type=bool,
-                    default=options["USE_CRITIC"])
+parser.add_argument("--sample_actions", action="store_true")
+parser.add_argument("--greedy_suggestions", action="store_true")
 parser.add_argument("--steps", type=int, default=options["STEPS"],
                     help="Total number of time steps to train the agent.")
 parser.add_argument("--eval-interval", type=int,
@@ -60,6 +60,11 @@ parser.add_argument("--n-eval-episodes", type=int,
 parser.add_argument("--save-name", type=str, default=options["SAVE_NAME"])
 parser.add_argument("--T", type=float, default=options["T"])
 parser.add_argument("--T-decay", type=float, default=options["T_DECAY"])
+parser.add_argument("--learning_rate", type=float, default=3e-4)
+parser.add_argument("--tau", type=float, default=0.005)
+parser.add_argument("--gamma", type=float, default=0.99)
+parser.add_argument("--gradient_steps", type=int, default=1)
+parser.add_argument("--train_freq", type=int, default=1)
 parser.add_argument("--env", type=str, default=options["ENV"],
                     help="OpenAI Gym environment to perform algorithm on.")
 parser.add_argument("--device", type=str, default=options["DEVICE"],
@@ -97,8 +102,6 @@ run = wandb.init(entity='jgu-wandb', config=args.__dict__,
                        f"the {args.env[:-3]} environment.",
                  dir=str(experiment_folder), mode=args.wandb)
 
-# TODO pickle args and config (or maybe wand is sufficient)
-
 
 # environment function
 def make_env(seed=0):
@@ -108,22 +111,22 @@ def make_env(seed=0):
     return env
 
 
-# initialize peer group
+# initialize dictator
 algo_args = dict(policy="MlpPolicy", verbose=1,
                  policy_kwargs=dict(log_std_init=-3, net_arch=args.net_arch),
                  buffer_size=args.buffer_size,
                  batch_size=args.batch_size,
-                 ent_coef='auto', gamma=0.98, tau=0.02, train_freq=8,
+                 ent_coef='auto', gamma=args.gamma, tau=args.tau, train_freq=args.train_freq,
                  learning_starts=args.buffer_start_size, use_sde=True,
-                 learning_rate=7.3e-4, gradient_steps=8,
+                 learning_rate=args.learning_rate, gradient_steps=args.gradient_steps,
                  tensorboard_log=str(experiment_folder),
                  device=args.device)
 
 peer_args = dict(temperature=args.T, temp_decay=args.T_decay,
                  algo_args=algo_args, env_func=make_env,
-                 use_critic=args.use_critic)
+                 sample_actions=True, greedy_suggestions=True)
 
-# create Peer classes
+# create Dictator classes
 SACSub = make_dictator_class(SAC)
 TD3Sub = make_dictator_class(TD3)
 
@@ -145,16 +148,15 @@ for i in range(args.agent_count):
                       WandbCallback(gradient_save_freq=args.eval_interval,
                                     verbose=2)])
 
+# create dictator from submissive agents
 dictator = Dictator(subs)
-
-# TODO load or not
 
 # calculate number of epochs based on episode length
 max_episode_steps = max(args.min_epoch_length,
                         gym.spec(args.env).max_episode_steps)
 n_epochs = args.steps // max_episode_steps
 
-# train the peer group
+# train the dictator
 dictator.learn(n_epochs, callbacks=callbacks,
                eval_log_path=str(experiment_folder),
                max_epoch_len=max_episode_steps)

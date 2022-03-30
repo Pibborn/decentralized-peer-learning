@@ -14,22 +14,24 @@ def make_dictator_class(cls: Type[OffPolicyAlgorithm]):
     """
     class Dictator(make_peer_class(cls)):
         def __init__(self, temperature, temp_decay, algo_args, env_func,
-                     use_critic=True):
+                     sample_actions=True, greedy_suggestions=True):
             super(Dictator, self).__init__(temperature=temperature,
                                            temp_decay=temp_decay,
-                                           use_critic=use_critic,
                                            algo_args=algo_args,
                                            solo_training=False,
                                            env_func=env_func,
                                            use_trust=True,
                                            follow_steps=1)
+            self.sample_actions = sample_actions
+            self.greedy_suggestions = greedy_suggestions
 
         def predict(self, observation, **_):
+            """ The dictator always involves every party in the decision
+            making """
             return self.get_action(observation)
 
         def critique(self, observations, actions) -> np.array:
             """ Evaluates the actions with the critic. """
-
             with torch.no_grad():
                 a = torch.as_tensor(actions, device=self.device)
                 o = torch.as_tensor(observations, device=self.device)

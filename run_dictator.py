@@ -168,10 +168,10 @@ def create_sac_agents(env, num_agents):
                     buffer_size=args.rbuf_capacity,
                     batch_size=args.batch_size,
                     ent_coef='auto',
-                    gamma=0.98, tau=0.02, train_freq=8,
+                    gamma=0.98, tau=0.02, train_freq=64,
                     learning_starts=args.replay_start_size, use_sde=True,
                     learning_rate=7.3e-4,
-                    gradient_steps=8, tensorboard_log='agents/dictator',
+                    gradient_steps=64, tensorboard_log='agents/dictator',
                     device='cuda')
         agent_list.append(agent)
     return agent_list
