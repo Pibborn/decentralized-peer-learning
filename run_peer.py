@@ -80,6 +80,11 @@ parser.add_argument("--trust-lr", type=float, default=options["TRUST_LR"])
 parser.add_argument("--save-name", type=str, default=options["SAVE_NAME"])
 parser.add_argument("--T", type=float, default=options["T"])
 parser.add_argument("--T-decay", type=float, default=options["T_DECAY"])
+parser.add_argument("--learning_rate", type=float, default=3e-4)
+parser.add_argument("--tau", type=float, default=0.005)
+parser.add_argument("--gamma", type=float, default=0.99)
+parser.add_argument("--gradient_steps", type=int, default=1)
+parser.add_argument("--train_freq", type=int, default=1)
 parser.add_argument("--env", type=str, default=options["ENV"],
                     help="OpenAI Gym environment to perform algorithm on.")
 parser.add_argument("--device", type=str, default=options["DEVICE"],
@@ -135,9 +140,9 @@ algo_args = dict(policy="MlpPolicy", verbose=1,
                  policy_kwargs=dict(log_std_init=-3, net_arch=args.net_arch),
                  buffer_size=args.buffer_size,
                  batch_size=args.batch_size,
-                 ent_coef='auto', gamma=0.98, tau=0.02, train_freq=64,
+                 ent_coef='auto', gamma=args.gamma, tau=args.tau, train_freq=args.train_freq,
                  learning_starts=args.buffer_start_size, use_sde=True,
-                 learning_rate=7.3e-4, gradient_steps=64,
+                 learning_rate=args.learning_rate, gradient_steps=args.gradient_steps,
                  tensorboard_log=str(experiment_folder),
                  device=args.device)
 
