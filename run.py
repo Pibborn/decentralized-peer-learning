@@ -12,6 +12,8 @@ import pybulletgym
 import pybullet_envs
 import wandb
 from wandb.integration.sb3 import WandbCallback
+from fullinfo import PeerFullInfo
+from pathlib import Path
 
 options = {
     "FOLLOW_STEPS" : 1,
@@ -19,7 +21,7 @@ options = {
     "SWITCH_TRAIN" : 1,
     "SWITCH_RATIO" : 1,
     "USE_PRIO" : 0,
-    "SAVE_NAME" : "temp",
+    "SAVE_NAME" : "fullinfo",
     "LOAD" : 0,
     "HIDDEN_SIZE" : 256,
     "AGENT_COUNT" : 4,
@@ -159,21 +161,33 @@ def train_single(agent, env_train, env_test, log_interval=1000, savedir='agent')
     print(rewards)
 
 def train_fullinfo(agents, env_train, env_test, log_interval, savedir='agent_fullinfo'):
-    eval_callback = EvalCallback(env_test, best_model_save_path='./agents/',
-                                 log_path='./logs/', eval_freq=log_interval,
-                                 deterministic=True, render=False)
-    wandb_callback = WandbCallback(gradient_save_freq=log_interval,
-                                   model_save_path="results/temp",
-                                   verbose=2)
     total_timesteps = 1000
+    fullinfo_agents = PeerFullInfo(agents)
+    max_episode_steps = max(args.min_epoch_length,
+                            gym.spec(args.env).max_episode_steps)
+    n_epochs = args.steps // max_episode_steps
+    callbacks = []
+    for i in range(len(agents)):
+        eval_callback = EvalCallback(env_test, best_model_save_path='./agents/',
+                                     log_path='./logs/', eval_freq=log_interval,
+                                     deterministic=True, render=False)
+        wandb_callback = WandbCallback(gradient_save_freq=log_interval,
+                                       model_save_path="results/temp",
+                                       verbose=2)
+        callbacks.append([eval_callback, wandb_callback])
     for step in range(total_timesteps):
-        agents[0].learn(total_timesteps=1, callback=[eval_callback, wandb_callback], log_interval=log_interval)
+        fullinfo_agents.learn(n_epochs, max_episode_steps, callbacks, log_interval=log_interval)
 
 
 
 if __name__ == '__main__':
     parser = add_args()
     args = parser.parse_args()
+    experiment_folder = Path.cwd().joinpath("Experiments", args.save_name,
+                                            wandb.util.generate_id())
+    experiment_folder.mkdir(exist_ok=True, parents=True)
+    # init wandb
+    wandb.tensorboard.patch(root_logdir=str(experiment_folder))
     run = wandb.init(entity='jgu-wandb', config=args, project='peer-learning', monitor_gym=True, sync_tensorboard=True)
     #train_env = SubprocVecEnv([make_env(args.env, args.test) for i in range(args.num_agents)])
     #train_env = make_vec_env(args.env, n_envs=args.num_agents, seed=args.seed+1)
@@ -185,9 +199,7 @@ if __name__ == '__main__':
                                     video_length=200)
     check_args(args)
     agents = create_sac_agents(train_env, args.num_agents)
-    max_episode_steps = max(args.min_epoch_length,
-                            gym.spec(args.env).max_episode_steps)
-    n_epochs = args.steps // max_episode_steps
+
     #train_single(agents[0], train_env, test_env, log_interval=args.log_interval, savedir=args.savedir)
-    train_fullinfo(agents, train_env, test_env, n_epochs, log_interval=args.log_interval)
+    train_fullinfo(agents, train_env, test_env, log_interval=args.log_interval)
 
