@@ -40,7 +40,7 @@ options = {
     "ENV": "HalfCheetahBulletEnv-v0",
     "BATCH_SIZE": 100,
     "MIN_EPOCH_LEN": 10_000,
-    "WANDB": "disabled",
+    "WANDB": "offline",
 }
 
 # create arg parser
