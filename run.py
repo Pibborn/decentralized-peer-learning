@@ -143,17 +143,17 @@ def create_sac_agents(env, num_agents):
         agent = SAC("MlpPolicy", env, policy_kwargs=dict(log_std_init=-3, net_arch=[400, 300]), verbose=1,
                     buffer_size=300000, batch_size=256, ent_coef='auto', gamma=0.98, tau=0.02, train_freq=64,
                     learning_starts=10000, use_sde=True, learning_rate=7.3e-4, gradient_steps=64,
-                    tensorboard_log='agents/sac')
+                    tensorboard_log=str(experiment_folder))
         agent_list.append(agent)
     return agent_list
 
 
 def train_single(agent, env_train, env_test, log_interval=1000, savedir='agent'):
-    eval_callback = EvalCallback(env_test, best_model_save_path='./agents/',
-                                 log_path='./logs/', eval_freq=log_interval,
+    eval_callback = EvalCallback(env_test, best_model_save_path=str(experiment_folder),
+                                 log_path=str(experiment_folder), eval_freq=log_interval,
                                  deterministic=True, render=False)
     wandb_callback = WandbCallback(gradient_save_freq=log_interval,
-                                   model_save_path="results/temp",
+                                   model_save_path=str(experiment_folder),
                                    verbose=2)
     agent.learn(total_timesteps=3e6, callback=[eval_callback, wandb_callback], log_interval=log_interval)
     agent.save(args.basedir + os.sep + 'single_' + savedir)
@@ -168,11 +168,11 @@ def train_fullinfo(agents, env_train, env_test, log_interval, savedir='agent_ful
     n_epochs = args.steps // max_episode_steps
     callbacks = []
     for i in range(len(agents)):
-        eval_callback = EvalCallback(env_test, best_model_save_path='./agents/',
-                                     log_path='./logs/', eval_freq=log_interval,
+        eval_callback = EvalCallback(env_test, best_model_save_path=str(experiment_folder),
+                                     log_path=str(experiment_folder), eval_freq=log_interval,
                                      deterministic=True, render=False)
         wandb_callback = WandbCallback(gradient_save_freq=log_interval,
-                                       model_save_path="results/temp",
+                                       model_save_path=str(experiment_folder),
                                        verbose=2)
         callbacks.append([eval_callback, wandb_callback])
     for step in range(total_timesteps):
@@ -188,7 +188,9 @@ if __name__ == '__main__':
     experiment_folder.mkdir(exist_ok=True, parents=True)
     # init wandb
     wandb.tensorboard.patch(root_logdir=str(experiment_folder))
-    run = wandb.init(entity='jgu-wandb', config=args, project='peer-learning', monitor_gym=True, sync_tensorboard=True)
+    run = wandb.init(entity='jgu-wandb', config=args, project='peer-learning',
+                     monitor_gym=True, sync_tensorboard=True,
+                     dir=str(experiment_folder), mode="disabled")
     #train_env = SubprocVecEnv([make_env(args.env, args.test) for i in range(args.num_agents)])
     #train_env = make_vec_env(args.env, n_envs=args.num_agents, seed=args.seed+1)
     train_env = DummyVecEnv([make_env(args.seed)])
