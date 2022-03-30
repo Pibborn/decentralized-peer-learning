@@ -43,7 +43,8 @@ options = {
     "N_AGENTS": 4,
     "BASESAVELOC": "./agents/",
     "SAVEDIR": datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'),
-    "LOGINTERVAL": 1000
+    "LOGINTERVAL": 1000,
+    "MIN_EPOCH_LEN": 10_000,
 }
 
 
@@ -94,6 +95,9 @@ def add_args():
     parser.add_argument("--savedir", type=str, default=options["SAVEDIR"])
     parser.add_argument("--log-interval", type=int, default=options["LOGINTERVAL"])
     parser.add_argument("--track-video", action='store_true')
+    parser.add_argument("--min-epoch-length", type=int,
+                        default=options["MIN_EPOCH_LEN"],
+                        help="Minimal length of a training epoch.")
 
     parser.add_argument(
         "--policy-output-scale",
@@ -154,6 +158,18 @@ def train_single(agent, env_train, env_test, log_interval=1000, savedir='agent')
     rewards = evaluate_policy(agents[0], test_env)
     print(rewards)
 
+def train_fullinfo(agents, env_train, env_test, log_interval, savedir='agent_fullinfo'):
+    eval_callback = EvalCallback(env_test, best_model_save_path='./agents/',
+                                 log_path='./logs/', eval_freq=log_interval,
+                                 deterministic=True, render=False)
+    wandb_callback = WandbCallback(gradient_save_freq=log_interval,
+                                   model_save_path="results/temp",
+                                   verbose=2)
+    total_timesteps = 1000
+    for step in range(total_timesteps):
+        agents[0].learn(total_timesteps=1, callback=[eval_callback, wandb_callback], log_interval=log_interval)
+
+
 
 if __name__ == '__main__':
     parser = add_args()
@@ -169,5 +185,9 @@ if __name__ == '__main__':
                                     video_length=200)
     check_args(args)
     agents = create_sac_agents(train_env, args.num_agents)
-    train_single(agents[0], train_env, test_env, log_interval=args.log_interval, savedir=args.savedir)
+    max_episode_steps = max(args.min_epoch_length,
+                            gym.spec(args.env).max_episode_steps)
+    n_epochs = args.steps // max_episode_steps
+    #train_single(agents[0], train_env, test_env, log_interval=args.log_interval, savedir=args.savedir)
+    train_fullinfo(agents, train_env, test_env, n_epochs, log_interval=args.log_interval)
 
