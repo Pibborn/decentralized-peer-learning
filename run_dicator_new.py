@@ -23,8 +23,6 @@ options = {
     "LOAD": False,
     "NET_ARCH": [400, 300],
     "AGENT_COUNT": 4,
-    "SAMPLE_ACTIONS": True,
-    "GREEDY_SUGGESTIONS": False,
     "T": 1,
     "T_DECAY": 0,
     "DEVICE": "auto",
@@ -49,11 +47,8 @@ parser.add_argument("--buffer-size", type=int,
                     default=options["BUFFER_SIZE"])
 parser.add_argument("--agent-count", type=int,
                     default=options["AGENT_COUNT"])
-parser.add_argument("--sample_actions", type=bool,
-                    default=options["SAMPLE_ACTIONS"])
-parser.add_argument("--greedy_suggestions", type=bool,
-                    default=options["GREEDY_SUGGESTIONS"])
-#sample_actions=True, greedy_suggestions=True
+parser.add_argument("--sample_actions", action="store_true")
+parser.add_argument("--greedy_suggestions", action="store_true")
 parser.add_argument("--steps", type=int, default=options["STEPS"],
                     help="Total number of time steps to train the agent.")
 parser.add_argument("--eval-interval", type=int,
