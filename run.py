@@ -1,207 +1,202 @@
-import os
-from stable_baselines3 import SAC
-from stable_baselines3.common.evaluation import evaluate_policy
-from stable_baselines3.common.callbacks import EvalCallback
-from stable_baselines3.common.env_util import make_vec_env, DummyVecEnv
-from stable_baselines3.common.vec_env import VecVideoRecorder
-from stable_baselines3.common.monitor import Monitor
 import argparse
-import gym
 import datetime
-import pybulletgym
-import pybullet_envs
-import wandb
-from wandb.integration.sb3 import WandbCallback
-from fullinfo import PeerFullInfo
+
+import gym
+import pybulletgym  # noqa
+import pybullet_envs  # noqa
+
 from pathlib import Path
 
+from stable_baselines3 import SAC
+from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3.common.env_util import DummyVecEnv
+from stable_baselines3.common.vec_env import VecVideoRecorder
+from stable_baselines3.common.monitor import Monitor
+
+import wandb
+from wandb.integration.sb3 import WandbCallback
+
+from fullinfo import PeerFullInfo
+
+# default options for the argument parser
 options = {
-    "FOLLOW_STEPS" : 1,
-    "MIX_AGENTS" : 0,
-    "SWITCH_TRAIN" : 1,
-    "SWITCH_RATIO" : 1,
-    "USE_PRIO" : 0,
-    "SAVE_NAME" : "fullinfo",
-    "LOAD" : 0,
-    "HIDDEN_SIZE" : 256,
-    "AGENT_COUNT" : 4,
-    "PEER_LEARNING" : 1,
-    "USE_AGENT_VALUE" : 0,
-    "USE_TRUST" : 1,
-    "USE_TRUST_BUFFER" : 1,
-    "USE_CRITIC" : 1,
-    "T" : 1,
-    "T_DECAY" : 0,
-    "TRUST_LR" : 0.001,
-    "RENDER_TRAIN" : 0,
-    "GPU": -1,
-    "STEPS": 3_000_000,#200*100,#
-    "EVAL_INTERVAL" : 1,
-    "EVAL_N_RUNS" : 10,
-    "REPLAY_START_SIZE" : 10000,#,200,#
-    "RBUF_CAPACITY" : 10**6,
-    "TEST": False,
-    "ENV" : "HalfCheetahBulletEnv-v0",#Pendulum-v0"#""Pendulum-v0"#"Walker2DPyBulletEnv-v0" #"InvertedDoublePendulumPyBulletEnv-v0"#"BipedalWalker-v3"#
-    "N_AGENTS": 4,
-    "BASESAVELOC": "./agents/",
-    "SAVEDIR": datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S'),
-    "LOGINTERVAL": 1000,
-    "MIN_EPOCH_LEN": 10_000,
+    # General
+    "SAVE_NAME": "full_info",
+    "AGENT_COUNT": 4,
+    "DEVICE": "auto",
+    "ENV": "HalfCheetahBulletEnv-v0",
+    # Training
+    "STEPS": 3_000_000,
+    "EVAL_INTERVAL": 10_000,
+    "EVAL_N_RUNS": 10,
+    "BUFFER_START_SIZE": 1_000,
+    "BUFFER_SIZE": 1_000_000,
+    "BATCH_SIZE": 256,
+    "MIN_EPOCH_LEN": 1_000,
+    "LEARNING_RATE": 3e-4,
+    "TAU": 0.005,
+    "GAMMA": 0.99,
+    "GRAD_STEPS": 1,
+    "TRAIN_FREQ": 1,
+    # Agents
+    "MIX_AGENTS": False,
+    "USE_PRIO": False,
+    "NET_ARCH": [400, 300],
+    # WANDB
+    "WANDB": "offline",
 }
 
 
-def check_args(args):
-    assert(args.peer_learning if args.use_trust else True)
-    assert(args.peer_learning if args.use_critic else True)
-    assert(args.peer_learning if args.use_agent_value else True)
-
 def add_args():
+    # create arg parser
     parser = argparse.ArgumentParser()
-    parser.add_argument("--follow-steps", type=int, default=options["FOLLOW_STEPS"])
-    parser.add_argument("--hidden-size", type=int, default=options["HIDDEN_SIZE"])
-    parser.add_argument("--mix-agents", type=int, default=options["MIX_AGENTS"])
-    parser.add_argument("--switch-ratio", type=float, default=options["SWITCH_RATIO"])
-    parser.add_argument("--switch-train", type=int, default=options["SWITCH_TRAIN"])
-    parser.add_argument("--use-prio", type=int, default=options["USE_PRIO"])
-    parser.add_argument("--rbuf-capacity", type=int, default=options["RBUF_CAPACITY"])
-    parser.add_argument("--agent-count", type=int, default=options["AGENT_COUNT"])
-    parser.add_argument("--use-agent-value", type=int, default=options["USE_AGENT_VALUE"])
-    parser.add_argument("--use-trust", type=int, default=options["USE_TRUST"])
-    parser.add_argument("--use-trust-buffer", type=int, default=options["USE_TRUST_BUFFER"])
-    parser.add_argument("--use-critic", type=int, default=options["USE_CRITIC"])
-    parser.add_argument("--peer-learning", type=int, default=options["PEER_LEARNING"])
-    parser.add_argument("--steps", type=int, default=options["STEPS"],
-                        help="Total number of timesteps to train the agent.",
-                        )
-    parser.add_argument("--eval-interval", type=int, default=options["EVAL_INTERVAL"],
-                        help="Interval in timesteps between evaluations.")
-    parser.add_argument("--eval-n-runs", type=int, default=options["EVAL_N_RUNS"],
-                        help="Number of episodes run for each evaluation.",
-                        )
+    # General
     parser.add_argument("--save-name", type=str, default=options["SAVE_NAME"])
-    parser.add_argument("--trust-lr", type=float, default=options["TRUST_LR"])
-    parser.add_argument("--T", type=float, default=options["T"])
-    parser.add_argument("--T-decay", type=float, default=options["T_DECAY"])
-
+    parser.add_argument("--device", type=str, default=options["DEVICE"],
+                        choices=["cpu", "cuda", "auto"],
+                        help="Device to use, either 'cpu', 'cuda' for GPU or "
+                             "'auto'.")
     parser.add_argument("--env", type=str, default=options["ENV"],
-                        help="OpenAI Gym MuJoCo env to perform algorithm on.",
-                        )
-
-    parser.add_argument("--render-train", type=int, default=options["RENDER_TRAIN"])
-    parser.add_argument("--gpu", type=int, default=options["GPU"], help="GPU to use, set to -1 if no GPU.")
-    parser.add_argument("--load", type=int, default=options["LOAD"])
-    parser.add_argument("--seed", type=int, default=1, help="Random seed [0, 2 ** 32)")
-    parser.add_argument("--test", action='store_true', default=options['TEST'])
-    parser.add_argument("--num-agents", type=int, default=options["N_AGENTS"])
-    parser.add_argument("--basedir", type=str, default=options["BASESAVELOC"])
-    parser.add_argument("--savedir", type=str, default=options["SAVEDIR"])
-    parser.add_argument("--log-interval", type=int, default=options["LOGINTERVAL"])
+                        help="OpenAI Gym environment to perform algorithm on.")
+    parser.add_argument("--seed", type=int, default=1,
+                        help="Random seed in [0, 2 ** 32)")
     parser.add_argument("--track-video", action='store_true')
-    parser.add_argument("--min-epoch-length", type=int,
-                        default=options["MIN_EPOCH_LEN"],
-                        help="Minimal length of a training epoch.")
-
-    parser.add_argument(
-        "--policy-output-scale",
-        type=float,
-        default=1.0,
-        help="Weight initialization scale of policy output.",
-    )
-
-    parser.add_argument(
-        "--replay-start-size",
-        type=int,
-        default=options["REPLAY_START_SIZE"],
-        help="Minimum replay buffer size before " + "performing gradient updates.",
-    )
-    parser.add_argument("--batch-size", type=int, default=100, help="Minibatch size")
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument("--agent-count", type=int, help="Number of agents.",
+                       default=options["AGENT_COUNT"])
+    group.add_argument("--single-agent", action="store_true",
+                       help="Run single agent training.")
+    # Training
+    training = parser.add_argument_group("Training")
+    training.add_argument("--steps", type=int, default=options["STEPS"],
+                          help="Total number of time steps to train the agent.")
+    training.add_argument("--eval-interval", type=int,
+                          default=options["EVAL_INTERVAL"],
+                          help="Interval in time steps between evaluations.")
+    training.add_argument("--n-eval-episodes", type=int,
+                          default=options["EVAL_N_RUNS"],
+                          help="Number of episodes for each evaluation.")
+    training.add_argument("--buffer-size", type=int,
+                          default=options["BUFFER_SIZE"])
+    training.add_argument("--buffer-start-size", type=int,
+                          default=options["BUFFER_START_SIZE"],
+                          help="Minimum replay buffer size before performing "
+                               "gradient updates.")
+    training.add_argument("--batch-size", type=int,
+                          default=options["BATCH_SIZE"],
+                          help="Minibatch size")
+    training.add_argument("--min-epoch-length", type=int,
+                          default=options["MIN_EPOCH_LEN"],
+                          help="Minimal length of a training epoch.")
+    training.add_argument("--learning_rate", type=float,
+                          default=options["LEARNING_RATE"])
+    training.add_argument("--tau", type=float, default=options["TAU"])
+    training.add_argument("--gamma", type=float, default=options["GAMMA"])
+    training.add_argument("--gradient_steps", type=int,
+                          default=options["GRAD_STEPS"])
+    training.add_argument("--train_freq", type=int,
+                          default=options["TRAIN_FREQ"])
+    # Agents
+    agent_parser = parser.add_argument_group("Agent")
+    agent_parser.add_argument("--mix-agents", type=bool,
+                              default=options["MIX_AGENTS"])
+    agent_parser.add_argument("--net-arch", type=list,
+                              default=options["NET_ARCH"])
+    # WANDB
+    parser.add_argument("--wandb", type=str, default=options["WANDB"],
+                        choices=["online", "offline", "disabled"])
     return parser
 
 
 def make_env(seed):
     env = gym.make(args.env)
-    # Unwrap TimeLimit wrapper TODO understand why
-    # assert isinstance(env, gym.wrappers.TimeLimit)
-    # env = env.env
-    # Use different random seeds for train and test envs
-    env_seed = seed
-    env.seed(env_seed)
-    #env._max_episode_steps = 1e4 # see https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/sac.yml
+    env.seed(seed)
     env = Monitor(env)
-    if args.render_train:
-        env.render()
-
-    def return_env():
-        return env
-    return return_env
+    return DummyVecEnv([lambda: env])
 
 
 def create_sac_agents(env, num_agents):
     agent_list = []
     for i in range(num_agents):
-        # hps taken from https://github.com/DLR-RM/rl-baselines3-zoo/blob/master/hyperparams/sac.yml
-        agent = SAC("MlpPolicy", env, policy_kwargs=dict(log_std_init=-3, net_arch=[400, 300]), verbose=1,
-                    buffer_size=300000, batch_size=256, ent_coef='auto', gamma=0.98, tau=0.02, train_freq=64,
-                    learning_starts=10000, use_sde=True, learning_rate=7.3e-4, gradient_steps=64,
-                    tensorboard_log=str(experiment_folder))
+        agent = SAC(policy="MlpPolicy", env=env, verbose=1,
+                    policy_kwargs=dict(log_std_init=-3,
+                                       net_arch=args.net_arch),
+                    buffer_size=args.buffer_size,
+                    batch_size=args.batch_size,
+                    ent_coef='auto', gamma=args.gamma, tau=args.tau,
+                    train_freq=args.train_freq,
+                    gradient_steps=args.gradient_steps,
+                    learning_starts=args.buffer_start_size, use_sde=True,
+                    learning_rate=args.learning_rate,
+                    tensorboard_log=str(experiment_folder),
+                    device=args.device)
         agent_list.append(agent)
     return agent_list
 
 
-def train_single(agent, env_train, env_test, log_interval=1000, savedir='agent'):
-    eval_callback = EvalCallback(env_test, best_model_save_path=str(experiment_folder),
-                                 log_path=str(experiment_folder), eval_freq=log_interval,
+def train_single(agent, env_test, log_interval, savedir):
+    eval_callback = EvalCallback(env_test,
+                                 best_model_save_path=savedir,
+                                 log_path=savedir,
+                                 eval_freq=log_interval,
                                  deterministic=True, render=False)
     wandb_callback = WandbCallback(gradient_save_freq=log_interval,
-                                   model_save_path=str(experiment_folder),
+                                   model_save_path=savedir,
                                    verbose=2)
-    agent.learn(total_timesteps=3e6, callback=[eval_callback, wandb_callback], log_interval=log_interval)
-    agent.save(args.basedir + os.sep + 'single_' + savedir)
-    rewards = evaluate_policy(agents[0], test_env)
-    print(rewards)
+    agent.learn(total_timesteps=args.steps,
+                callback=[eval_callback, wandb_callback],
+                log_interval=log_interval)
+    agent.save(savedir)
 
-def train_fullinfo(agents, env_train, env_test, log_interval, savedir='agent_fullinfo'):
-    total_timesteps = 1000
+
+def train_fullinfo(agents, env_test, log_interval, savedir):
     fullinfo_agents = PeerFullInfo(agents)
     max_episode_steps = max(args.min_epoch_length,
                             gym.spec(args.env).max_episode_steps)
     n_epochs = args.steps // max_episode_steps
     callbacks = []
     for i in range(len(agents)):
-        eval_callback = EvalCallback(env_test, best_model_save_path=str(experiment_folder),
-                                     log_path=str(experiment_folder), eval_freq=log_interval,
+        eval_callback = EvalCallback(env_test,
+                                     best_model_save_path=savedir,
+                                     log_path=savedir,
+                                     eval_freq=log_interval,
                                      deterministic=True, render=False)
         wandb_callback = WandbCallback(gradient_save_freq=log_interval,
-                                       model_save_path=str(experiment_folder),
+                                       model_save_path=savedir,
                                        verbose=2)
         callbacks.append([eval_callback, wandb_callback])
-    for step in range(total_timesteps):
-        fullinfo_agents.learn(n_epochs, max_episode_steps, callbacks, log_interval=log_interval)
 
+    fullinfo_agents.learn(n_epochs, max_episode_steps, callbacks,
+                          log_interval=log_interval)
 
 
 if __name__ == '__main__':
     parser = add_args()
     args = parser.parse_args()
+    unique_dir = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
     experiment_folder = Path.cwd().joinpath("Experiments", args.save_name,
-                                            wandb.util.generate_id())
+                                            unique_dir)
     experiment_folder.mkdir(exist_ok=True, parents=True)
+
     # init wandb
     wandb.tensorboard.patch(root_logdir=str(experiment_folder))
-    run = wandb.init(entity='jgu-wandb', config=args, project='peer-learning',
+    run = wandb.init(entity='jgu-wandb', config=args.__dict__,
+                     project='peer-learning',
                      monitor_gym=True, sync_tensorboard=True,
-                     dir=str(experiment_folder), mode="disabled")
-    #train_env = SubprocVecEnv([make_env(args.env, args.test) for i in range(args.num_agents)])
-    #train_env = make_vec_env(args.env, n_envs=args.num_agents, seed=args.seed+1)
-    train_env = DummyVecEnv([make_env(args.seed)])
-    test_env = DummyVecEnv([make_env(args.seed+1)])
+                     dir=str(experiment_folder), mode=args.wandb)
+    train_env = make_env(args.seed)
+    test_env = make_env(args.seed + 1)
     if args.track_video:
+        def record_video_trigger(x):
+            return x % args.eval_interval == 0
         test_env = VecVideoRecorder(test_env, f"videos/{run.id}",
-                                    record_video_trigger=lambda x: x % args.log_interval == 0,
+                                    record_video_trigger=record_video_trigger,
                                     video_length=200)
-    check_args(args)
-    agents = create_sac_agents(train_env, args.num_agents)
+    agents = create_sac_agents(train_env, args.agent_count)
 
-    #train_single(agents[0], train_env, test_env, log_interval=args.log_interval, savedir=args.savedir)
-    train_fullinfo(agents, train_env, test_env, log_interval=args.log_interval)
-
+    if args.single_agent:
+        train_single(agents[0], test_env, log_interval=args.eval_interval,
+                     savedir=args.save_name)
+    else:
+        train_fullinfo(agents, test_env, log_interval=args.eval_interval,
+                       savedir=args.save_name)
