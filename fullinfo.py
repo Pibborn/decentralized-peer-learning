@@ -9,11 +9,15 @@ class PeerFullInfo:
         """
         self.agents = agents
 
-        replay_buffer_cls = self.agents[0].replay_buffer.__class__
+        # copy values from first agent's buffer
+        first_buffer = self.agents[0].replay_buffer
+        replay_buffer_cls = first_buffer.__class__
         replay_buffer_kwargs = self.agents[0].replay_buffer_kwargs
-
-        replay_buffer = replay_buffer_cls(100000,
-                                          self.agents[0].env.observation_space, self.agents[0].env.action_space,
+        replay_buffer = replay_buffer_cls(first_buffer.buffer_size,
+                                          first_buffer.observation_space,
+                                          first_buffer.action_space,
+                                          device=first_buffer.device,
+                                          n_envs=first_buffer.n_envs,
                                           **replay_buffer_kwargs)
         for agent in agents:
             agent.replay_buffer = replay_buffer
@@ -26,4 +30,3 @@ class PeerFullInfo:
                 peer.learn(total_timesteps=max_epoch_len,
                            callback=callback, tb_log_name=f"FullInfo{p}",
                            reset_num_timesteps=False, **kwargs)
-
