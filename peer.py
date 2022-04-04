@@ -162,7 +162,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                 q_values, _ = torch.min(q_values, dim=1, keepdim=True)
                 return q_values.cpu().numpy()
 
-        def get_action(self, obs):
+        def get_action(self, obs, deterministic=False):
             """ The core function of peer learning acquires the suggested
             actions of the peers and chooses one based on the settings. """
             # follow peer for defined number of steps
@@ -179,7 +179,8 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             for peer in self.group.peers:
                 # self always uses exploration, the suggestions of the other
                 # peers only do if the critic method isn't used.
-                det = peer != self and self.greedy_suggestions
+                det = (peer != self and self.greedy_suggestions) or \
+                      deterministic
                 action, _ = peer.policy.predict(obs, deterministic=det)
                 actions.append(action)
             actions = np.asarray(actions).squeeze(1)

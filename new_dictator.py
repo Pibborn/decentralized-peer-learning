@@ -25,10 +25,10 @@ def make_dictator_class(cls: Type[OffPolicyAlgorithm]):
             self.sample_actions = sample_actions
             self.greedy_suggestions = greedy_suggestions
 
-        def predict(self, observation, **_):
-            """ The dictator always involves every party in the decision
-            making """
-            return self.get_action(observation)
+        def predict(self, observation, deterministic=False, **_):
+            """ The dictator always involves every party in the decision-
+            making. """
+            return self.get_action(observation, deterministic=deterministic)
 
         def critique(self, observations, actions) -> np.array:
             """ Evaluates the actions with the critic. """
