@@ -153,11 +153,15 @@ run = wandb.init(entity='jgu-wandb', config=args.__dict__,
 
 
 # environment function
-def make_env(seed=0):
-    env = gym.make(args.env)
-    env.seed(seed)
-    env = Monitor(env)
-    return DummyVecEnv([lambda: env])
+def make_env(seed=0, n_envs=1):
+    envs = []
+    for s in range(n_envs):
+        def env_func():
+            env = Monitor(gym.make(args.env))
+            env.seed(seed + s)
+            return env
+        envs.append(env_func)
+    return DummyVecEnv(envs)
 
 
 # initialize peer group
@@ -195,7 +199,8 @@ for i in range(args.agent_count):
         peers.append(SACPeer(**peer_args))
 
     # every agent gets its own callbacks
-    callbacks.append([EvalCallback(eval_env=make_env(args.seed),
+    callbacks.append([EvalCallback(eval_env=make_env(args.seed,
+                                                     args.n_eval_episodes),
                                    best_model_save_path=str(experiment_folder),
                                    log_path=str(experiment_folder),
                                    eval_freq=args.eval_interval,
@@ -209,6 +214,10 @@ peer_group = PeerGroup(peers, use_agent_values=args.use_agent_value,
 # calculate number of epochs based on episode length
 max_episode_steps = max(args.min_epoch_length,
                         gym.spec(args.env).max_episode_steps)
+
+# overcomes the wandb display bug
+# max_episode_steps = args.eval_interval
+
 n_epochs = args.steps // max_episode_steps
 
 # train the peer group
