@@ -173,7 +173,8 @@ def train_fullinfo(agents, env_test, log_interval, savedir):
 if __name__ == '__main__':
     parser = add_args()
     args = parser.parse_args()
-    unique_dir = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
+    time_string = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
+    unique_dir = f'{time_string}__{wandb.util.generate_id()}'
     experiment_folder = Path.cwd().joinpath("Experiments", args.save_name,
                                             unique_dir)
     experiment_folder.mkdir(exist_ok=True, parents=True)

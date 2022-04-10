@@ -109,7 +109,8 @@ parser.add_argument("--wandb", type=str, default=options["WANDB"],
 args = parser.parse_args()
 
 # create results/experiments folder
-unique_dir = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
+time_string = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
+unique_dir = f'{time_string}__{wandb.util.generate_id()}'
 experiment_folder = Path.cwd().joinpath("Experiments", args.save_name,
                                         unique_dir)
 experiment_folder.mkdir(exist_ok=True, parents=True)
