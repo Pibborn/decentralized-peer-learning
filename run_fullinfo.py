@@ -63,11 +63,9 @@ def add_args():
     parser.add_argument("--seed", type=int, default=1,
                         help="Random seed in [0, 2 ** 32)")
     parser.add_argument("--track-video", action='store_true')
-    group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument("--agent-count", type=int, help="Number of agents.",
+
+    parser.add_argument("--agent-count", type=int, help="Number of agents.",
                        default=options["AGENT_COUNT"])
-    group.add_argument("--single-agent", action="store_true",
-                       help="Run single agent training.")
     parser.add_argument("-t", "--multi-threading", action="store_true",
                        help="Run agents parallel in different threads.")
     # Training
@@ -210,7 +208,7 @@ if __name__ == '__main__':
     # otherwise only one thread does not throw an exception
     wandb.config.update(agents[0].__dict__, allow_val_change=True)
 
-    if args.single_agent:
+    if args.agent_count == 1:
         train_single(agents[0], test_env, log_interval=args.eval_interval,
                      savedir=args.save_name)
     else:
