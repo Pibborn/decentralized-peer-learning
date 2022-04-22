@@ -68,7 +68,7 @@ def add_args():
                        default=options["AGENT_COUNT"])
     group.add_argument("--single-agent", action="store_true",
                        help="Run single agent training.")
-    group.add_argument("-t", "--multi-threading", action="store_true",
+    parser.add_argument("-t", "--multi-threading", action="store_true",
                        help="Run agents parallel in different threads.")
     # Training
     training = parser.add_argument_group("Training")
