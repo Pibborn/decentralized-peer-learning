@@ -137,7 +137,8 @@ option_on = (args.use_trust or args.use_critic or args.use_agent_value)
 assert (option_on and args.peer_learning) or not option_on
 
 # create results/experiments folder
-unique_dir = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
+time_string = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
+unique_dir = f'{time_string}__{wandb.util.generate_id()}'
 experiment_folder = Path.cwd().joinpath("Experiments", args.save_name,
                                         unique_dir)
 experiment_folder.mkdir(exist_ok=True, parents=True)
