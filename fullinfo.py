@@ -1,4 +1,5 @@
 import itertools as it
+from threading import Thread
 
 
 class PeerFullInfo:
@@ -31,3 +32,22 @@ class PeerFullInfo:
                 peer.learn(total_timesteps=max_epoch_len,
                            callback=callback, tb_log_name=f"Peer{p}",
                            reset_num_timesteps=False, **kwargs)
+
+
+class FullInfoMultiThreading(PeerFullInfo):
+    def learn(self, n_epochs, max_epoch_len, callbacks, **kwargs):
+        assert len(callbacks) == len(self.agents)
+
+        threads = []
+        for p, peer, callback in zip(it.count(), self.agents, callbacks):
+            args = dict(total_timesteps=max_epoch_len * n_epochs,
+                        callback=callback,
+                        tb_log_name=f"Peer{p}",
+                        reset_num_timesteps=False,
+                        **kwargs)
+            t = Thread(target=peer.learn, kwargs=args)
+            threads.append(t)
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()

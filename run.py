@@ -17,6 +17,8 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 
 from fullinfo import PeerFullInfo
+from fullinfo import FullInfoMultiThreading
+
 
 # default options for the argument parser
 options = {
@@ -66,6 +68,8 @@ def add_args():
                        default=options["AGENT_COUNT"])
     group.add_argument("--single-agent", action="store_true",
                        help="Run single agent training.")
+    group.add_argument("-t", "--multi-threading", action="store_true",
+                       help="Run agents parallel in different threads.")
     # Training
     training = parser.add_argument_group("Training")
     training.add_argument("--steps", type=int, default=options["STEPS"],
@@ -154,7 +158,10 @@ def train_single(agent, env_test, log_interval, savedir):
 
 
 def train_fullinfo(agents, env_test, log_interval, savedir):
-    fullinfo_agents = PeerFullInfo(agents)
+    if args.multi_threading:
+        fullinfo_agents = FullInfoMultiThreading(agents)
+    else:
+        fullinfo_agents = PeerFullInfo(agents)
     max_episode_steps = max(args.min_epoch_length,
                             gym.spec(args.env).max_episode_steps)
     n_epochs = args.steps // max_episode_steps
@@ -198,6 +205,9 @@ if __name__ == '__main__':
                                     record_video_trigger=record_video_trigger,
                                     video_length=200)
     agents = create_sac_agents(train_env, args.agent_count)
+    # setting those values already so the treads don't have to take care of it
+    # otherwise only one thread does not throw an exception
+    wandb.config.update(agents[0].__dict__, allow_val_change=True)
 
     if args.single_agent:
         train_single(agents[0], test_env, log_interval=args.eval_interval,
