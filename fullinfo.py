@@ -3,6 +3,7 @@ import itertools as it
 
 class PeerFullInfo:
     """ A group of agents who train separately, but share a replay buffer. """
+
     def __init__(self, agents):
         """
         :param agents: An iterable of peer agents
@@ -28,5 +29,5 @@ class PeerFullInfo:
         for i in range(n_epochs):
             for p, peer, callback in zip(it.count(), self.agents, callbacks):
                 peer.learn(total_timesteps=max_epoch_len,
-                           callback=callback, tb_log_name=f"FullInfo{p}",
+                           callback=callback, tb_log_name=f"Peer{p}",
                            reset_num_timesteps=False, **kwargs)
