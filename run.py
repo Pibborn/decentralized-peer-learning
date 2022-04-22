@@ -108,11 +108,15 @@ def add_args():
     return parser
 
 
-def make_env(seed):
-    env = gym.make(args.env)
-    env.seed(seed)
-    env = Monitor(env)
-    return DummyVecEnv([lambda: env])
+def make_env(seed=0, n_envs=1):
+    envs = []
+    for s in range(n_envs):
+        def env_func():
+            env = Monitor(gym.make(args.env))
+            env.seed(seed + s)
+            return env
+        envs.append(env_func)
+    return DummyVecEnv(envs)
 
 
 def create_sac_agents(env, num_agents):
@@ -160,6 +164,7 @@ def train_fullinfo(agents, env_test, log_interval, savedir):
                                      best_model_save_path=savedir,
                                      log_path=savedir,
                                      eval_freq=log_interval,
+                                     n_eval_episodes=args.n_eval_episodes,
                                      deterministic=True, render=False)
         wandb_callback = WandbCallback(gradient_save_freq=log_interval,
                                        model_save_path=savedir,
@@ -185,7 +190,7 @@ if __name__ == '__main__':
                      monitor_gym=True, sync_tensorboard=True,
                      dir=str(experiment_folder), mode=args.wandb)
     train_env = make_env(args.seed)
-    test_env = make_env(args.seed + 1)
+    test_env = make_env(args.seed + 1, args.n_eval_episodes)
     if args.track_video:
         def record_video_trigger(x):
             return x % args.eval_interval == 0
