@@ -13,6 +13,11 @@ class ParallelGroup(PeerGroup):
 
         eval_callbacks, wandb_callbacks = zip(*callbacks)
 
+        # initialize evaluation callbacks
+        for peer, callback in zip(self.peers, eval_callbacks):
+            callback.eval_freq = 1  # evaluate on every call of on_step
+            callback.init_callback(peer)
+
         for i in range(n_epochs):
             # ratio of 0 never performs a solo episode
             solo_epoch = i % (1 + self.switch_ratio) == 1
@@ -28,12 +33,9 @@ class ParallelGroup(PeerGroup):
                 # update epoch for temperature decay
                 peer.epoch += 1
 
-            if i == 0:
-                # initialize evaluation callbacks
-                for peer, callback in zip(self.peers, eval_callbacks):
-                    callback.eval_freq = 1
-                    callback.init_callback(peer)
-
             # evaluate agents
             for callback in eval_callbacks:
+                # reset logger to the currently used one
+                callback.logger = callback.model.logger
+                # actually evaluate agents
                 callback.on_step()
