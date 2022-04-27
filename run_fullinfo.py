@@ -194,6 +194,8 @@ if __name__ == '__main__':
     run = wandb.init(entity='jgu-wandb', config=args.__dict__,
                      project='peer-learning',
                      monitor_gym=True, sync_tensorboard=True,
+                     notes=f"Full info with {args.agent_count} agents on "
+                           f"the {args.env[:-3]} environment.",
                      dir=str(experiment_folder), mode=args.wandb)
     train_env = make_env(args.seed)
     test_env = make_env(args.seed + 1, args.n_eval_episodes)
