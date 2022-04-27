@@ -81,7 +81,8 @@ def add_args():
                           default=options["BUFFER_START_SIZE"],
                           help="Minimum replay buffer size before performing "
                                "gradient updates.")
-    training.add_argument("--batch-size", type=int, default=options["BATCH_SIZE"],
+    training.add_argument("--batch-size", type=int,
+                          default=options["BATCH_SIZE"],
                           help="Minibatch size")
     training.add_argument("--min-epoch-length", type=int,
                           default=options["MIN_EPOCH_LEN"],
@@ -92,7 +93,8 @@ def add_args():
     training.add_argument("--gamma", type=float, default=options["GAMMA"])
     training.add_argument("--gradient_steps", type=int,
                           default=options["GRAD_STEPS"])
-    training.add_argument("--train_freq", type=int, default=options["TRAIN_FREQ"])
+    training.add_argument("--train_freq", type=int,
+                          default=options["TRAIN_FREQ"])
     # Agents
     agent_parser = parser.add_argument_group("Agent")
     agent_parser.add_argument("--mix-agents", type=bool,
