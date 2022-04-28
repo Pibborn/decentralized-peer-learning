@@ -47,6 +47,7 @@ options = {
     "USE_AGENT_VALUE": True,
     "USE_TRUST": True,
     "USE_TRUST_BUFFER": True,
+    "TRUST_BUFFER_SIZE": 1000,
     "USE_CRITIC": True,
     "T": 1,
     "T_DECAY": 0,
@@ -125,6 +126,8 @@ def add_args():
                                default=options["USE_TRUST"])
     peer_learning.add_argument("--use-trust-buffer", type=bool,
                                default=options["USE_TRUST_BUFFER"])
+    peer_learning.add_argument("--trust-buffer-size", type=int,
+                               default=options["TRUST_BUFFER_SIZE"])
     peer_learning.add_argument("--use-critic", type=bool,
                                default=options["USE_CRITIC"])
     peer_learning.add_argument("--trust-lr", type=float,
@@ -191,7 +194,7 @@ if __name__ == '__main__':
     peer_args = dict(temperature=args.T, temp_decay=args.T_decay,
                      algo_args=algo_args, env_func=make_env,
                      use_trust=args.use_trust, use_critic=args.use_critic,
-                     buffer_size=args.buffer_size,
+                     buffer_size=args.trust_buffer_size,
                      follow_steps=args.follow_steps,
                      use_trust_buffer=args.use_trust_buffer,
                      solo_training=not args.peer_learning)
