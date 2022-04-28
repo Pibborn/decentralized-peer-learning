@@ -5,8 +5,7 @@ from pathlib import Path
 
 def run():
     directory = [
-        'peer_4_agent_Pendulum-v0_08_04_22',
-        'dictator_new_4_agent_Pendulum-v0_08_04_22'
+        'peer_1_agent_HalfCheetahBulletEnv-v0_27_04_22'
     ]
     wandb_entity_name = 'jgu-wandb'
     wandb_project = 'peer-learning'

@@ -187,6 +187,7 @@ if __name__ == '__main__':
     unique_dir = f'{time_string}__{wandb.util.generate_id()}'
     experiment_folder = Path.cwd().joinpath("Experiments", args.save_name,
                                             unique_dir)
+    print(f'Experiment folder is {experiment_folder}')
     experiment_folder.mkdir(exist_ok=True, parents=True)
 
     # init wandb
