@@ -1,4 +1,6 @@
 import itertools as it
+import threading
+import traceback
 from threading import Thread
 
 
@@ -51,3 +53,15 @@ class FullInfoMultiThreading(PeerFullInfo):
             thread.start()
         for thread in threads:
             thread.join()
+
+
+# set except hook
+def excepthook(args):
+    msg = "".join([f"In {args.thread}: \n"] +
+                  traceback.format_exception(args.exc_type,
+                                             args.exc_value,
+                                             args.exc_traceback))
+    raise ChildProcessError(msg)
+
+
+threading.excepthook = excepthook
