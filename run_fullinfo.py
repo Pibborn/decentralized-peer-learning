@@ -177,7 +177,7 @@ def train_fullinfo(agents, env_test, log_interval, savedir):
         callbacks.append([eval_callback, wandb_callback])
 
     fullinfo_agents.learn(n_epochs, max_episode_steps, callbacks,
-                          log_interval=log_interval)
+                          log_interval=None)
 
 
 if __name__ == '__main__':
