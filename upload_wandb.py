@@ -1,19 +1,28 @@
 import os
 import glob
 from pathlib import Path
-
+import json
 
 def run():
     directory = [
-        'peer_1_agent_HalfCheetahBulletEnv-v0_27_04_22'
+        'dictator_new_4_agent_Pendulum-v0_27_04_22',
+        'dictator_new_4_agent_HalfCheetahBulletEnv-v0_27_04_22',
+        'dictator_new_4_agent_Walker2DPyBulletEnv-v0_27_04_22',
+        'peer_4_agent_HalfCheetahBulletEnv-v0_27_04_22',
+        'peer_4_agent_Pendulum-v0_27_04_22',
+        'peer_4_agent_Walker2DPyBulletEnv-v0_27_04_22',
+        'fullinfo_4_agent_HalfCheetahBulletEnv-v0_27_04_22',
+        'fullinfo_4_agent_Walker2DPyBulletEnv-v0_27_04_22',
+        'fullinfo_4_agent_Pendulum-v0_27_04_22'
+
     ]
     wandb_entity_name = 'jgu-wandb'
     wandb_project = 'peer-learning'
     upload_identifier = ""
     Path_to_experiments = Path("/home/jbrugger/PycharmProjects/decentralized-peer-learning/Experiments")
 
-    print('\n')
     for setup in directory:
+        print(f"-------------------{directory}")
         upload_experiment(Path_to_experiments, setup, upload_identifier, wandb_entity_name, wandb_project)
 
 
@@ -23,14 +32,32 @@ def upload_experiment(Path_to_experiments, setup, upload_identifier, wandb_entit
     runs = get_all_results(list_of_runs)
     #runs = get_run_with_most_results(list_of_runs)
     for run in runs:
-        path_to_run_to_upload = path_to_runs / run
-        id = f"{setup}__{run}{upload_identifier}"
-        command = f"wandb sync -e {wandb_entity_name} " \
-              f"-p {wandb_project}" \
-              f" --id {id}" \
-              f" {path_to_run_to_upload}"
-        print(command)
-        os.system(command)
+        try:
+            path_to_run_to_upload = path_to_runs / run
+            id = f"{setup}__{run}{upload_identifier}"
+            path_to_log_file = path_to_run_to_upload / 'wandb' / 'latest-run' / 'files' / 'wandb-metadata.json'
+            if check_if_multi_processing_was_used(path_to_log_file):
+                id = f"multi_{id}"
+
+            command = f"wandb sync -e {wandb_entity_name} " \
+                  f"-p {wandb_project}" \
+                  f" --id {id}" \
+                  f" {path_to_run_to_upload}"
+            print(command)
+            os.system(command)
+        except FileNotFoundError:
+            print(f"skiped {run}")
+
+
+def check_if_multi_processing_was_used(path_to_log_file):
+    with open(path_to_log_file) as f:
+        data = list(json.load(f).items())
+        for t in data:
+            if t[0] == "args":
+                for entry in t[1]:
+                    if entry == '--multi-threading':
+                        return True
+    return False
 
 def get_all_results(list_of_runs):
     return [Path(run_path).name for run_path in list_of_runs]
