@@ -27,5 +27,5 @@ export https_proxy=https://webproxy.zdv.uni-mainz.de:8888
 source virt/bin/activate
 wandb offline
 srun python run_peer.py  --save-name peer_4_agent_Walker2DPyBulletEnv-v0_27_04_22  \
-  --env Walker2DPyBulletEnv-v0 --agent-count 4 --batch-size 256 --buffer-size 300_000 --steps 1_000_000 \
+  --job_id %j --env Walker2DPyBulletEnv-v0 --agent-count 4 --batch-size 256 --buffer-size 300_000 --steps 1_000_000 \
   --buffer-start-size 10000 --learning_rate 7.3e-4 --gamma 0.98 --gradient_steps 64 --tau 0.02 --train_freq 64

@@ -27,7 +27,7 @@ export http_proxy=http://webproxy.zdv.uni-mainz.de:8888
 export https_proxy=https://webproxy.zdv.uni-mainz.de:8888
 source virt/bin/activate
 wandb offline
-srun python run_dicator_new.py  --save-name dictator_new_3_agent_Walker2DPyBulletEnv-v0  --env Walker2DPyBulletEnv-v0  --agent-count 3 \
+srun python run_dicator_new.py  --save-name dictator_new_3_agent_Walker2DPyBulletEnv-v0  --job_id %j --env Walker2DPyBulletEnv-v0  --agent-count 3 \
  --batch-size 256 --buffer-size 300_000 --steps 1_000_000 --buffer-start-size 10_000 --learning_rate 7.3e-4 --gamma 0.98 --gradient_steps 64 --tau 0.02 --train_freq 64 --sample_actions
 
 

@@ -62,6 +62,8 @@ def add_args():
     parser = argparse.ArgumentParser(description="Peer learning.")
     # General
     parser.add_argument("--save-name", type=str, default=options["SAVE_NAME"])
+
+    parser.add_argument("--job_id", type=str, default=wandb.util.generate_id())
     parser.add_argument("--agent-count", type=int, help="Number of agents.",
                         default=options["AGENT_COUNT"])
     parser.add_argument("--device", type=str, default=options["DEVICE"],
@@ -164,7 +166,7 @@ if __name__ == '__main__':
 
     # create results/experiments folder
     time_string = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
-    unique_dir = f'{time_string}__{wandb.util.generate_id()}'
+    unique_dir = f'{time_string}__{args.job_id}'
     experiment_folder = Path.cwd().joinpath("Experiments", args.save_name,
                                             unique_dir)
     experiment_folder.mkdir(exist_ok=True, parents=True)

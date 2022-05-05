@@ -55,6 +55,8 @@ def add_args():
     parser = argparse.ArgumentParser(description="Dictator.")
     # General
     parser.add_argument("--save-name", type=str, default=options["SAVE_NAME"])
+
+    parser.add_argument("--job_id", type=str, default=wandb.util.generate_id())
     parser.add_argument("--agent-count", type=int, help="Number of agents.",
                         default=options["AGENT_COUNT"])
     parser.add_argument("--device", type=str, default=options["DEVICE"],

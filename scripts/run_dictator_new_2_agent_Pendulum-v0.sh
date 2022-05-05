@@ -26,5 +26,5 @@ export http_proxy=http://webproxy.zdv.uni-mainz.de:8888
 export https_proxy=https://webproxy.zdv.uni-mainz.de:8888
 source virt/bin/activate
 wandb offline
-srun python run_dicator_new.py  --save-name dictator_new_2_agent_Pendulum-v0  --env Pendulum-v0  --agent-count 2 \
+srun python run_dicator_new.py  --save-name dictator_new_2_agent_Pendulum-v0  --job_id %j --env Pendulum-v0  --agent-count 2 \
  --eval-interval 500 --batch-size 256 --buffer-size 1_000_000 --steps 20_000 --buffer-start-size 100 --learning_rate 1e-3 --sample_actions
