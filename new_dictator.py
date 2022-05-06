@@ -14,14 +14,15 @@ def make_dictator_class(cls: Type[OffPolicyAlgorithm]):
     """
     class Dictator(make_peer_class(cls)):
         def __init__(self, temperature, temp_decay, algo_args, env_func,
-                     sample_actions=True, greedy_suggestions=True):
+                     sample_actions=True, greedy_suggestions=True, seed=None):
             super(Dictator, self).__init__(temperature=temperature,
                                            temp_decay=temp_decay,
                                            algo_args=algo_args,
                                            solo_training=False,
                                            env_func=env_func,
                                            use_trust=True,
-                                           follow_steps=1)
+                                           follow_steps=1,
+                                           seed=seed)
             self.sample_actions = sample_actions
             self.greedy_suggestions = greedy_suggestions
 

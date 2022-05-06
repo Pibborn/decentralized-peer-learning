@@ -97,9 +97,9 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
         needs to be mixed with a suitable algorithm. """
         def __init__(self, temperature, temp_decay, algo_args, env_func,
                      use_trust=False, use_critic=False, init_trust_values=200,
-                     buffer_size=1000, follow_steps=10,
+                     buffer_size=1000, follow_steps=10, seed=None,
                      use_trust_buffer=True, solo_training=False):
-            super(Peer, self).__init__(**algo_args, env=env_func())
+            super(Peer, self).__init__(**algo_args, env=env_func(), seed=seed)
             # create noise matrix on the correct device
             self.actor.reset_noise(self.env.num_envs)
 

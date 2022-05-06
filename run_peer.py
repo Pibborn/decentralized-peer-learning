@@ -5,12 +5,15 @@ import gym
 import pybulletgym  # noqa
 import pybullet_envs  # noqa
 
+
+import numpy as np
 from pathlib import Path
 
 from stable_baselines3 import SAC, TD3
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.env_util import DummyVecEnv
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.utils import set_random_seed
 
 import wandb
 from wandb.integration.sb3 import WandbCallback
@@ -143,14 +146,19 @@ def add_args():
     return parser
 
 
+def new_random_seed():
+    return np.random.randint(np.iinfo(int).max)
+
+
 # environment function
-def make_env(seed=0, n_envs=1):
+def make_env(n_envs=1):
     envs = []
-    for s in range(n_envs):
+    for _ in range(n_envs):
         def env_func():
             env = Monitor(gym.make(args.env))
-            env.seed(seed + s)
+            env.seed(new_random_seed())
             return env
+
         envs.append(env_func)
     return DummyVecEnv(envs)
 
@@ -170,6 +178,9 @@ if __name__ == '__main__':
     experiment_folder = Path.cwd().joinpath("Experiments", args.save_name,
                                             unique_dir)
     experiment_folder.mkdir(exist_ok=True, parents=True)
+
+    # seed everything
+    set_random_seed(args.seed)
 
     # init wandb
     wandb.tensorboard.patch(root_logdir=str(experiment_folder))
@@ -210,13 +221,12 @@ if __name__ == '__main__':
     callbacks = []
     for i in range(args.agent_count):
         if args.mix_agents and i % 2 != 0:
-            peers.append(TD3Peer(**peer_args))
+            peers.append(TD3Peer(**peer_args, seed=new_random_seed()))
         else:
-            peers.append(SACPeer(**peer_args))
+            peers.append(SACPeer(**peer_args, seed=new_random_seed()))
 
         # every agent gets its own callbacks
-        callbacks.append([EvalCallback(eval_env=make_env(args.seed,
-                                                         args.n_eval_episodes),
+        callbacks.append([EvalCallback(eval_env=make_env(args.n_eval_episodes),
                                        best_model_save_path=str(experiment_folder),
                                        log_path=str(experiment_folder),
                                        eval_freq=args.eval_interval,

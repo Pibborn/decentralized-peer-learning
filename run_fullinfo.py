@@ -5,6 +5,7 @@ import gym
 import pybulletgym  # noqa
 import pybullet_envs  # noqa
 
+import numpy as np
 from pathlib import Path
 
 from stable_baselines3 import SAC
@@ -12,13 +13,13 @@ from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.env_util import DummyVecEnv
 from stable_baselines3.common.vec_env import VecVideoRecorder
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.utils import set_random_seed
 
 import wandb
 from wandb.integration.sb3 import WandbCallback
 
 from fullinfo import PeerFullInfo
 from fullinfo import FullInfoMultiThreading
-
 
 # default options for the argument parser
 options = {
@@ -68,9 +69,9 @@ def add_args():
     parser.add_argument("--track-video", action='store_true')
 
     parser.add_argument("--agent-count", type=int, help="Number of agents.",
-                       default=options["AGENT_COUNT"])
+                        default=options["AGENT_COUNT"])
     parser.add_argument("-t", "--multi-threading", action="store_true",
-                       help="Run agents parallel in different threads.")
+                        help="Run agents parallel in different threads.")
     # Training
     training = parser.add_argument_group("Training")
     training.add_argument("--steps", type=int, default=options["STEPS"],
@@ -113,13 +114,19 @@ def add_args():
     return parser
 
 
-def make_env(seed=0, n_envs=1):
+def new_random_seed():
+    return np.random.randint(np.iinfo(int).max)
+
+
+# environment function
+def make_env(n_envs=1):
     envs = []
-    for s in range(n_envs):
+    for _ in range(n_envs):
         def env_func():
             env = Monitor(gym.make(args.env))
-            env.seed(seed + s)
+            env.seed(new_random_seed())
             return env
+
         envs.append(env_func)
     return DummyVecEnv(envs)
 
@@ -138,6 +145,7 @@ def create_sac_agents(env, num_agents):
                     learning_starts=args.buffer_start_size, use_sde=True,
                     learning_rate=args.learning_rate,
                     tensorboard_log=str(experiment_folder),
+                    seed=new_random_seed(),
                     device=args.device)
         agent_list.append(agent)
     return agent_list
@@ -193,6 +201,9 @@ if __name__ == '__main__':
     print(f'Experiment folder is {experiment_folder}')
     experiment_folder.mkdir(exist_ok=True, parents=True)
 
+    # seed everything
+    set_random_seed(args.seed)
+
     # init wandb
     wandb.tensorboard.patch(root_logdir=str(experiment_folder))
     run = wandb.init(entity='jgu-wandb', config=args.__dict__,
@@ -201,11 +212,13 @@ if __name__ == '__main__':
                      notes=f"Full info with {args.agent_count} agents on "
                            f"the {args.env[:-3]} environment.",
                      dir=str(experiment_folder), mode=args.wandb)
-    train_env = make_env(args.seed)
-    test_env = make_env(args.seed + 1, args.n_eval_episodes)
+    train_env = make_env()
+    test_env = make_env(args.n_eval_episodes)
     if args.track_video:
         def record_video_trigger(x):
             return x % args.eval_interval == 0
+
+
         test_env = VecVideoRecorder(test_env, f"videos/{run.id}",
                                     record_video_trigger=record_video_trigger,
                                     video_length=200)

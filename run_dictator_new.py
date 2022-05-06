@@ -5,12 +5,15 @@ import gym
 import pybulletgym  # noqa
 import pybullet_envs  # noqa
 
+
+import numpy as np
 from pathlib import Path
 
 from stable_baselines3 import SAC, TD3
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.env_util import DummyVecEnv
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.utils import set_random_seed
 
 import wandb
 from wandb.integration.sb3 import WandbCallback
@@ -113,10 +116,14 @@ def add_args():
     return parser
 
 
+def new_random_seed():
+    return np.random.randint(np.iinfo(int).max)
+
+
 # environment function
-def make_env(seed=0):
+def make_env():
     env = gym.make(args.env)
-    env.seed(seed)
+    env.seed(new_random_seed())
     env = Monitor(env)
     return DummyVecEnv([lambda: env])
 
@@ -132,6 +139,9 @@ if __name__ == '__main__':
     experiment_folder = Path.cwd().joinpath("Experiments", args.save_name,
                                             unique_dir)
     experiment_folder.mkdir(exist_ok=True, parents=True)
+
+    # seed everything
+    set_random_seed(args.seed)
 
     # init wandb
     wandb.tensorboard.patch(root_logdir=str(experiment_folder))
@@ -168,12 +178,12 @@ if __name__ == '__main__':
     callbacks = []
     for i in range(args.agent_count):
         if args.mix_agents and i % 2 != 0:
-            subs.append(TD3Sub(**peer_args))
+            subs.append(TD3Sub(**peer_args, seed=new_random_seed()))
         else:
-            subs.append(SACSub(**peer_args))
+            subs.append(SACSub(**peer_args, seed=new_random_seed()))
 
         # every agent gets its own callbacks
-        callbacks.append([EvalCallback(eval_env=make_env(args.seed),
+        callbacks.append([EvalCallback(eval_env=make_env(),
                                        best_model_save_path=str(experiment_folder),
                                        log_path=str(experiment_folder),
                                        eval_freq=args.eval_interval,
