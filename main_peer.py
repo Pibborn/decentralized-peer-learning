@@ -16,7 +16,7 @@ current_dir = os.path.dirname(__file__)
 # #TODO: find better solution
 # project_base = os.getcwd()
 # sys.path.insert(0,project_base)
-# import utils as my_utils
+
 
 
 import pfrl

@@ -22,102 +22,27 @@ from wandb.integration.sb3 import WandbCallback
 from peer import PeerGroup as Dictator
 from new_dictator import make_dictator_class
 
-# default options for the argument parser
-options = {
-    # General
-    "SAVE_NAME": "dictator",
-    "AGENT_COUNT": 4,
-    "DEVICE": "auto",
-    "ENV": "HalfCheetahBulletEnv-v0",
-    # Training
-    "STEPS": 3_000_000,
-    "EVAL_INTERVAL": 10_000,
-    "EVAL_N_RUNS": 10,
-    "BUFFER_START_SIZE": 1_000,
-    "BUFFER_SIZE": 1_000_000,
-    "BATCH_SIZE": 100,
-    "MIN_EPOCH_LEN": 10_000,
-    "LEARNING_RATE": 3e-4,
-    "TAU": 0.005,
-    "GAMMA": 0.99,
-    "GRAD_STEPS": 1,
-    "TRAIN_FREQ": 1,
-    # Agents
-    "MIX_AGENTS": False,
-    "NET_ARCH": [400, 300],
-    # Dictator
-    "T": 1,
-    "T_DECAY": 0,
-    # WANDB
-    "WANDB": "offline",
-}
+from utils import str2bool, add_default_values_to_parser, add_default_values_to_train_parser, new_random_seed
 
 
 def add_args():
     # create arg parser
     parser = argparse.ArgumentParser(description="Dictator.")
     # General
-    parser.add_argument("--save-name", type=str, default=options["SAVE_NAME"])
+    parser.add_argument("--save-name", type=str, default="dictator")
+    parser = add_default_values_to_parser(parser)
 
-    parser.add_argument("--job_id", type=str, default=wandb.util.generate_id())
-    parser.add_argument("--agent-count", type=int, help="Number of agents.",
-                        default=options["AGENT_COUNT"])
-    parser.add_argument("--device", type=str, default=options["DEVICE"],
-                        choices=["cpu", "cuda", "auto"],
-                        help="Device to use, either 'cpu', 'cuda' for GPU or "
-                             "'auto'.")
-    parser.add_argument("--env", type=str, default=options["ENV"],
-                        help="OpenAI Gym environment to perform algorithm on.")
-    parser.add_argument("--seed", type=int, default=1,
-                        help="Random seed in [0, 2 ** 32)")
     # Training
     training = parser.add_argument_group("Training")
-    training.add_argument("--steps", type=int, default=options["STEPS"],
-                          help="Total number of time steps to train the agent.")
-    training.add_argument("--eval-interval", type=int,
-                          default=options["EVAL_INTERVAL"],
-                          help="Interval in time steps between evaluations.")
-    training.add_argument("--n-eval-episodes", type=int,
-                          default=options["EVAL_N_RUNS"],
-                          help="Number of episodes for each evaluation.")
-    training.add_argument("--buffer-size", type=int,
-                          default=options["BUFFER_SIZE"])
-    training.add_argument("--buffer-start-size", type=int,
-                          default=options["BUFFER_START_SIZE"],
-                          help="Minimum replay buffer size before performing "
-                               "gradient updates.")
-    training.add_argument("--batch-size", type=int,
-                          default=options["BATCH_SIZE"],
-                          help="Minibatch size")
-    training.add_argument("--min-epoch-length", type=int,
-                          default=options["MIN_EPOCH_LEN"],
-                          help="Minimal length of a training epoch.")
-    training.add_argument("--learning_rate", type=float,
-                          default=options["LEARNING_RATE"])
-    training.add_argument("--tau", type=float, default=options["TAU"])
-    training.add_argument("--gamma", type=float, default=options["GAMMA"])
-    training.add_argument("--gradient_steps", type=int,
-                          default=options["GRAD_STEPS"])
-    training.add_argument("--train_freq", type=int,
-                          default=options["TRAIN_FREQ"])
-    # Agents
-    agent_parser = parser.add_argument_group("Agent")
-    agent_parser.add_argument("--mix-agents", type=bool,
-                              default=options["MIX_AGENTS"])
-    agent_parser.add_argument("--net-arch", type=list,
-                              default=options["NET_ARCH"])
+    training = add_default_values_to_train_parser(training)
+
     # Dictator
     dictator = parser.add_argument_group("Dictator")
-    dictator.add_argument("--T", type=float, default=options["T"])
-    dictator.add_argument("--T-decay", type=float, default=options["T_DECAY"])
-    # WANDB
-    parser.add_argument("--wandb", type=str, default=options["WANDB"],
-                        choices=["online", "offline", "disabled"])
+    dictator.add_argument("--T", type=float, default=1)
+    dictator.add_argument("--T-decay", type=float, default=0)
+
     return parser
 
-
-def new_random_seed():
-    return np.random.randint(np.iinfo(int).max)
 
 
 # environment function

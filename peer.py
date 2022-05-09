@@ -98,7 +98,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
         def __init__(self, temperature, temp_decay, algo_args, env_func,
                      use_trust=False, use_critic=False, init_trust_values=200,
                      buffer_size=1000, follow_steps=10, seed=None,
-                     use_trust_buffer=True, solo_training=False):
+                     use_trust_buffer=True, solo_training=False, peers_sample_with_noise=False):
             super(Peer, self).__init__(**algo_args, env=env_func(), seed=seed)
             # create noise matrix on the correct device
             self.actor.reset_noise(self.env.num_envs)
@@ -112,15 +112,16 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
 
             self.buffer = SuggestionBuffer(buffer_size)
             self.followed_peer = None
-            self.__n_peers = 1
+            self.__n_peers = None
             self.group = None
             self.epoch = 0
 
             if not solo_training:
                 # all peers suggest without noise
-                self.greedy_suggestions = use_critic
+                self.peers_sample_with_noise = peers_sample_with_noise
                 # actions are sampled instead of taken greedily
                 self.sample_actions = use_critic or use_trust
+                self.use_critic = use_critic
 
                 if use_trust:
                     self.trust_values = np.array([])
@@ -179,18 +180,20 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             for peer in self.group.peers:
                 # self always uses exploration, the suggestions of the other
                 # peers only do if the critic method isn't used.
-                det = (peer != self and self.greedy_suggestions) or \
+                det = (peer != self and not self.peers_sample_with_noise) or \
                       deterministic
                 action, _ = peer.policy.predict(obs, deterministic=det)
                 actions.append(action)
             actions = np.asarray(actions).squeeze(1)
 
             # critique
-            observations = np.tile(obs, (self.n_peers, 1))
-            q_values = self.critique(observations, actions).reshape(-1)
-            values = self.__normalize(q_values)
+            if self.use_critic:
+                observations = np.tile(obs, (self.n_peers, 1))
+                q_values = self.critique(observations, actions).reshape(-1)
+                self.peer_values['critic'] = q_values
 
             # calculate peer values, e.g., trust and agent values
+            values = np.zeros(shape=(self.n_peers))
             for key in self.peer_values.keys():
                 values += self.__normalize(self.peer_values[key])
 
@@ -250,7 +253,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             super(Peer, self)._on_step()  # noqa
 
             # update values, e.g., trust and agent values after ever step
-            for key in self.peer_values.keys():
+            for key in self.peer_value_functions.keys():
                 self.peer_value_functions[key]()
 
         def _store_transition(self, replay_buffer, buffer_action, new_obs,
