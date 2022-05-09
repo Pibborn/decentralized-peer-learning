@@ -4,6 +4,7 @@ import datetime
 import gym
 import pybulletgym  # noqa
 import pybullet_envs  # noqa
+import numpy as np
 
 
 import numpy as np
@@ -250,3 +251,11 @@ if __name__ == '__main__':
     peer_group.learn(n_epochs, callbacks=callbacks,
                      eval_log_path=str(experiment_folder),
                      max_epoch_len=max_episode_steps)
+
+    results = []
+    for callback in callbacks:
+        eval_callback = callback[0]
+        result = eval_callback.evaluations_results
+        print(result)
+        results.append(np.mean(result))
+    wandb.log({'reward_avg': np.mean(results)})
