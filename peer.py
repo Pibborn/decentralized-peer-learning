@@ -6,6 +6,8 @@ import numpy as np
 import torch
 
 from suggestionbuffer import SuggestionBuffer
+from utils import make_env
+
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 
 
@@ -95,11 +97,13 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
     class Peer(cls, ABC):
         """ Abstract Peer class
         needs to be mixed with a suitable algorithm. """
-        def __init__(self, temperature, temp_decay, algo_args, env_func,
+        def __init__(self, temperature, temp_decay, algo_args, env,
                      use_trust=False, use_critic=False, init_trust_values=200,
                      buffer_size=1000, follow_steps=10, seed=None,
-                     use_trust_buffer=True, solo_training=False, peers_sample_with_noise=False):
-            super(Peer, self).__init__(**algo_args, env=env_func(), seed=seed)
+                     use_trust_buffer=True, solo_training=False,
+                     peers_sample_with_noise=False):
+            super(Peer, self).__init__(**algo_args, env=make_env(env),
+                                       seed=seed)
             # create noise matrix on the correct device
             self.actor.reset_noise(self.env.num_envs)
 
@@ -193,7 +197,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                 self.peer_values['critic'] = q_values
 
             # calculate peer values, e.g., trust and agent values
-            values = np.zeros(shape=(self.n_peers))
+            values = np.zeros(self.n_peers)
             for key in self.peer_values.keys():
                 values += self.__normalize(self.peer_values[key])
 

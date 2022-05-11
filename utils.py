@@ -1,8 +1,28 @@
 import argparse
 import wandb
+import gym
+
 import numpy as np
+
+from stable_baselines3.common.env_util import DummyVecEnv
+from stable_baselines3.common.monitor import Monitor
+
+
+def make_env(env_str, n_envs=1):
+    envs = []
+    for _ in range(n_envs):
+        def env_func():
+            env = Monitor(gym.make(env_str))
+            env.seed(new_random_seed())
+            return env
+
+        envs.append(env_func)
+    return DummyVecEnv(envs)
+
+
 def new_random_seed():
-    return np.random.randint(low=0, high=2**32 -1)
+    return np.random.randint(np.iinfo(np.int32).max)
+
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -13,10 +33,10 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
-    
+
+
 def add_default_values_to_parser(parser):
-    
-    parser.add_argument("--job_id", type=str, 
+    parser.add_argument("--job_id", type=str,
                         default=wandb.util.generate_id())
     parser.add_argument("--agent-count", type=int, help="Number of agents.",
                         default=4)
@@ -40,37 +60,47 @@ def add_default_values_to_parser(parser):
 
     return parser
 
+
 def add_default_values_to_train_parser(training_parser):
     training_parser.add_argument("--steps", type=int, default=3_000_000,
-                          help="Total number of time steps to train the "
-                               "agent.")
+                                 help="Total number of time steps to train "
+                                      "the agent.")
     training_parser.add_argument("--eval-interval", type=int,
-                          default=10_000,
-                          help="Interval in time steps between evaluations.")
+                                 default=10_000,
+                                 help="Interval in time steps between "
+                                      "evaluations.")
     training_parser.add_argument("--n-eval-episodes", type=int,
-                          default=10,
-                          help="Number of episodes for each evaluation.")
+                                 default=10,
+                                 help="Number of episodes for each "
+                                      "evaluation.")
     training_parser.add_argument("--buffer-size", type=int,
-                          default=1_000_000)
+                                 default=1_000_000)
     training_parser.add_argument("--buffer-start-size", type=int,
-                          default=1_000,
-                          help="Minimum replay buffer size before performing "
-                               "gradient updates.")
+                                 default=1_000,
+                                 help="Minimum replay buffer size before "
+                                      "performing gradient updates.")
     training_parser.add_argument("--batch-size", type=int,
-                          default=100,
-                          help="Minibatch size")
+                                 default=100,
+                                 help="Minibatch size")
     training_parser.add_argument("--min-epoch-length", type=int,
-                          default=10_000,
-                          help="Minimal length of a training_parser epoch.")
+                                 default=10_000,
+                                 help="Minimal length of a training_parser "
+                                      "epoch.")
     training_parser.add_argument("--learning_rate", type=float,
-                          default=3e-4)
+                                 default=3e-4)
     training_parser.add_argument("--tau", type=float, default=0.005)
     training_parser.add_argument("--gamma", type=float, default=0.99)
     training_parser.add_argument("--gradient_steps", type=int,
-                          default=1)
+                                 default=1)
     training_parser.add_argument("--train_freq", type=int,
-                          default=1)
+                                 default=1)
     return training_parser
 
 
-    
+def log_reward_avg_in_wandb(callbacks):
+    results = []
+    for callback in callbacks:
+        eval_callback = callback[0]
+        result = eval_callback.evaluations_results
+        results.append(np.mean(result))
+    wandb.log({'reward_avg': np.mean(results)})

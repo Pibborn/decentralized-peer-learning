@@ -5,14 +5,10 @@ import gym
 import pybulletgym  # noqa
 import pybullet_envs  # noqa
 
-
-import numpy as np
 from pathlib import Path
 
 from stable_baselines3 import SAC, TD3
 from stable_baselines3.common.callbacks import EvalCallback
-from stable_baselines3.common.env_util import DummyVecEnv
-from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.utils import set_random_seed
 
 import wandb
@@ -22,7 +18,8 @@ from wandb.integration.sb3 import WandbCallback
 from peer import PeerGroup as Dictator
 from new_dictator import make_dictator_class
 
-from utils import str2bool, add_default_values_to_parser, add_default_values_to_train_parser, new_random_seed
+from utils import add_default_values_to_parser, log_reward_avg_in_wandb, \
+    add_default_values_to_train_parser, new_random_seed, make_env
 
 
 def add_args():
@@ -34,60 +31,54 @@ def add_args():
 
     # Training
     training = parser.add_argument_group("Training")
-    training = add_default_values_to_train_parser(training)
+    add_default_values_to_train_parser(training)
 
     # Dictator
-    dictator = parser.add_argument_group("Dictator")
-    dictator.add_argument("--T", type=float, default=1)
-    dictator.add_argument("--T-decay", type=float, default=0)
+    dictator_group = parser.add_argument_group("Dictator")
+    dictator_group.add_argument("--T", type=float, default=1)
+    dictator_group.add_argument("--T-decay", type=float, default=0)
 
     return parser
 
 
-
-# environment function
-def make_env():
-    env = gym.make(args.env)
-    env.seed(new_random_seed())
-    env = Monitor(env)
-    return DummyVecEnv([lambda: env])
-
-
 if __name__ == '__main__':
     # parse args
-    parser = add_args()
-    args = parser.parse_args()
+    arg_parser = add_args()
+    args = arg_parser.parse_args()
 
     # create results/experiments folder
-    time_string = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
-    unique_dir = f'{time_string}__{wandb.util.generate_id()}'
+    time_string = datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
+    unique_dir = f"{time_string}__{args.job_id}"
     experiment_folder = Path.cwd().joinpath("Experiments", args.save_name,
                                             unique_dir)
     experiment_folder.mkdir(exist_ok=True, parents=True)
+    str_folder = str(experiment_folder)
+    print("Experiment folder is", str_folder)
 
     # seed everything
     set_random_seed(args.seed)
 
     # init wandb
-    wandb.tensorboard.patch(root_logdir=str(experiment_folder))
-    run = wandb.init(entity='jgu-wandb', config=args.__dict__,
-                     project='peer-learning',
+    wandb.tensorboard.patch(root_logdir=str_folder)
+    run = wandb.init(entity="jgu-wandb", config=args.__dict__,
+                     project="peer-learning",
                      monitor_gym=True, sync_tensorboard=True,
                      notes=f"Dictator with {args.agent_count} agents on "
                            f"the {args.env[:-3]} environment.",
-                     dir=str(experiment_folder), mode=args.wandb)
+                     dir=str_folder, mode=args.wandb)
 
     # initialize dictator
     algo_args = dict(policy="MlpPolicy", verbose=1,
-                     policy_kwargs=dict(log_std_init=-3, net_arch=args.net_arch),
+                     policy_kwargs=dict(log_std_init=-3,
+                                        net_arch=args.net_arch),
                      buffer_size=args.buffer_size,
                      batch_size=args.batch_size,
-                     ent_coef='auto', gamma=args.gamma, tau=args.tau,
+                     ent_coef="auto", gamma=args.gamma, tau=args.tau,
                      train_freq=args.train_freq,
                      gradient_steps=args.gradient_steps,
                      learning_starts=args.buffer_start_size, use_sde=True,
                      learning_rate=args.learning_rate,
-                     tensorboard_log=str(experiment_folder),
+                     tensorboard_log=str_folder,
                      device=args.device)
 
     peer_args = dict(temperature=args.T, temp_decay=args.T_decay,
@@ -108,9 +99,9 @@ if __name__ == '__main__':
             subs.append(SACSub(**peer_args, seed=new_random_seed()))
 
         # every agent gets its own callbacks
-        callbacks.append([EvalCallback(eval_env=make_env(),
-                                       best_model_save_path=str(experiment_folder),
-                                       log_path=str(experiment_folder),
+        callbacks.append([EvalCallback(eval_env=make_env(args.env),
+                                       best_model_save_path=str_folder,
+                                       log_path=str_folder,
                                        eval_freq=args.eval_interval,
                                        n_eval_episodes=args.n_eval_episodes),
                           WandbCallback(gradient_save_freq=args.eval_interval,
@@ -122,9 +113,12 @@ if __name__ == '__main__':
     # calculate number of epochs based on episode length
     max_episode_steps = max(args.min_epoch_length,
                             gym.spec(args.env).max_episode_steps)
+
     n_epochs = args.steps // max_episode_steps
 
     # train the dictator
     dictator.learn(n_epochs, callbacks=callbacks,
-                   eval_log_path=str(experiment_folder),
+                   eval_log_path=str_folder,
                    max_epoch_len=max_episode_steps)
+
+    log_reward_avg_in_wandb(callbacks)
