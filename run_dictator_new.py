@@ -16,10 +16,10 @@ from wandb.integration.sb3 import WandbCallback
 
 # rename for convenience
 from peer import PeerGroup as Dictator
-from new_dictator import make_dictator_class
+from new_dictator import make_dictator_class, make_weighted_dictator_class
 
 from utils import add_default_values_to_parser, log_reward_avg_in_wandb, \
-    add_default_values_to_train_parser, new_random_seed, make_env
+    add_default_values_to_train_parser, new_random_seed, make_env, str2bool
 
 
 def add_args():
@@ -37,6 +37,8 @@ def add_args():
     dictator_group = parser.add_argument_group("Dictator")
     dictator_group.add_argument("--T", type=float, default=1)
     dictator_group.add_argument("--T-decay", type=float, default=0)
+    dictator_group.add_argument("--weighted-dictator", type=str2bool,
+                                nargs="?", const=True, default=False)
 
     return parser
 
@@ -82,12 +84,16 @@ if __name__ == '__main__':
                      device=args.device)
 
     peer_args = dict(temperature=args.T, temp_decay=args.T_decay,
-                     algo_args=algo_args, env_func=make_env,
-                     sample_actions=True, greedy_suggestions=True)
+                     algo_args=algo_args, env=args.env,
+                     sample_actions=True, peers_sample_with_noise=False)
 
     # create Dictator classes
-    SACSub = make_dictator_class(SAC)
-    TD3Sub = make_dictator_class(TD3)
+    if args.weighted_dictator:
+        SACSub = make_weighted_dictator_class(SAC)
+        TD3Sub = make_weighted_dictator_class(TD3)
+    else:
+        SACSub = make_dictator_class(SAC)
+        TD3Sub = make_dictator_class(TD3)
 
     # create subs
     subs = []
