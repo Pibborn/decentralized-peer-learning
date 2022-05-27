@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=11_05_22_peer_4_agent_C_Walker2DBulletEnv-v0      # Job name
+#SBATCH --job-name=14_05_22_dictator_new_4_agent_Walker2DPyBulletEnv-v0      # Job name
 #SBATCH -p smp                 # The partition your job should run #in. devel smp parallel
 #SBATCH --account=m2_datamining   # Specify allocation to charge against m$
 #SBATCH --time=96:00:00           # Run time (hh_mm_ss) - 30 seconds
@@ -11,15 +11,14 @@
 
 #SBATCH -o \%x_\%j_profile.out # Specify stdout output file where \%j e$
 #SBATCH -C anyarch
-#SBATCH -o output_11_05_22/\%x_\%j.out
-#SBATCH -e output_11_05_22/\%x_\%j.err
+#SBATCH -o output_14_05_22/\%x_\%j.out
+#SBATCH -e output_14_05_22/\%x_\%j.err
 
 #SBATCH --mail-user=jbrugge@students.uni-mainz.de
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-type=END
 
 module purge
-module load devel/SWIG/4.0.1-foss-2019b-Python-3.7.4
 module load devel/PyTorch/1.6.0-fosscuda-2019b-Python-3.7.4
 cd ..
 export PYTHONPATH=$PYTHONPATH:$(pwd)
@@ -27,7 +26,7 @@ export http_proxy=http://webproxy.zdv.uni-mainz.de:8888
 export https_proxy=https://webproxy.zdv.uni-mainz.de:8888
 source virt/bin/activate
 wandb offline
-srun python run_peer.py  --save-name peer_4_agent_C_Walker2DBulletEnv-v0_11_05_22  \
-  --job_id $SLURM_JOB_ID --env Walker2DBulletEnv-v0 --agent-count 4 --batch-size 256 --buffer-size 300_000 --steps 400_000 \
-  --buffer-start-size 10000 --learning_rate 7.3e-4 --gamma 0.98 --gradient_steps 64 --tau 0.02 --train_freq 64 \
-  --seed $SLURM_JOB_ID --use-critic True --use-agent-value False --use-trust False --peers-sample-with-noise False
+srun python run_dictator_new.py --save-name dictator_new_4_agent_Walker2DPyBulletEnv-v0_14_05_22 \
+  --job_id $SLURM_JOB_ID --env Walker2DPyBulletEnv-v0 --agent-count 4 --batch-size 256 --buffer-size 300_000 --steps 1_000_000 \
+  --buffer-start-size 10000 --learning_rate 7.3e-4 --gamma 0.98 --gradient_steps 64 --tau 0.02 --train_freq 64\
+  --seed $SLURM_JOB_ID --weighted-dictator true

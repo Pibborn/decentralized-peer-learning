@@ -19,6 +19,7 @@
 #SBATCH --mail-type=END
 
 module purge
+module load devel/SWIG/4.0.1-foss-2019b-Python-3.7.4
 module load devel/PyTorch/1.6.0-fosscuda-2019b-Python-3.7.4
 cd ..
 export PYTHONPATH=$PYTHONPATH:$(pwd)

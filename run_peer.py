@@ -34,11 +34,22 @@ def add_args():
 
     # Peer Learning
     peer_learning = parser.add_argument_group("Peer Learning")
-    peer_learning.add_argument("--follow-steps", type=int, default=1)
+    peer_learning.add_argument("--follow-steps", type=int, default=10)
     peer_learning.add_argument("--switch-ratio", type=float, default=1,
-                               help="Ratio of peer learning episodes to solo"
+                               help="How many times peer training compared to solo training "
+                                    "Ratio of peer learning episodes to solo"
                                     "episodes; 0 -> only peer learning "
-                                    "episodes.")
+                                    "episodes."
+                                    "ratio 0 {'solo': 0, 'peer': 100}"
+                                    "ratio 0.2 {'solo': 83, 'peer': 17}"
+                                    "ratio 0.25 {'solo': 80, 'peer': 20}"
+                                    "ratio 0.333333 {'solo': 75, 'peer': 25}"
+                                    "ratio 0.5 {'solo': 67, 'peer': 33}"
+                                    "ratio 1 {'solo': 50, 'peer': 50}"
+                                    "ratio 2 {'solo': 33, 'peer': 67}"
+                                    "ratio 3 {'solo': 25, 'peer': 75}"
+                                    "ratio 4 {'solo': 20, 'peer': 80}"
+                                    "ratio 5 {'solo': 17, 'peer': 83}")
     peer_learning.add_argument("--peer-learning", type=str2bool, nargs="?",
                                const=True, default=True)
     peer_learning.add_argument("--peers-sample-with-noise", type=str2bool,
@@ -56,7 +67,7 @@ def add_args():
     peer_learning.add_argument("--trust-lr", type=float, default=0.001)
     peer_learning.add_argument("--T", type=float, default=1)
     peer_learning.add_argument("--T-decay", type=float, default=0)
-    
+
     return parser
 
 
