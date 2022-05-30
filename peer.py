@@ -101,7 +101,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                      use_trust=False, use_critic=False, init_trust_values=200,
                      buffer_size=1000, follow_steps=10, seed=None,
                      use_trust_buffer=True, solo_training=False,
-                     peers_sample_with_noise=False):
+                     peers_sample_with_noise=False, sample_random_actions=False):
             super(Peer, self).__init__(**algo_args, env=make_env(env),
                                        seed=seed)
             # create noise matrix on the correct device
@@ -119,6 +119,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             self.__n_peers = None
             self.group = None
             self.epoch = 0
+            self.sample_random_actions = sample_random_actions
 
             if not solo_training:
                 # all peers suggest without noise
@@ -201,7 +202,9 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             for key in self.peer_values.keys():
                 values += self.__normalize(self.peer_values[key])
 
-            if self.sample_actions:
+            if self.sample_random_actions:
+                self.followed_peer = np.random.choice(self.n_peers)
+            elif self.sample_actions:
                 # sample action from probability
                 temp = self.temperature * np.exp(-self.temp_decay * self.epoch)
                 p = np.exp(values / temp)

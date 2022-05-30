@@ -25,7 +25,7 @@ def add_args():
     # create arg parser
     parser = argparse.ArgumentParser(description="Peer learning.")
     # General
-    parser.add_argument("--save-name", type=str, default="peer_learning")
+    parser.add_argument("--save-name", type=str, default="delete_me")
     parser = add_default_values_to_parser(parser)
 
     # Training
@@ -64,6 +64,8 @@ def add_args():
     peer_learning.add_argument("--trust-buffer-size", type=int, default=1000)
     peer_learning.add_argument("--use-critic", type=str2bool, nargs="?",
                                const=True, default=True)
+    peer_learning.add_argument("--sample_random_actions", type=str2bool, nargs="?",
+                               const=True, default=False)
     peer_learning.add_argument("--trust-lr", type=float, default=0.001)
     peer_learning.add_argument("--T", type=float, default=1)
     peer_learning.add_argument("--T-decay", type=float, default=0)
@@ -122,7 +124,8 @@ if __name__ == '__main__':
                      follow_steps=args.follow_steps,
                      use_trust_buffer=args.use_trust_buffer,
                      solo_training=not args.peer_learning,
-                     peers_sample_with_noise=args.peers_sample_with_noise)
+                     peers_sample_with_noise=args.peers_sample_with_noise,
+                     sample_random_actions=args.sample_random_actions)
 
     # create Peer classes
     SACPeer = make_peer_class(SAC)
