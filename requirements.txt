@@ -31,7 +31,7 @@ protobuf==3.19.4
 psutil==5.9.0
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
-pybullet==3.2.1
+pybullet==3.2.2
 -e git+https://github.com/benelot/pybullet-gym.git@bc68201c8101c4e30dde95f425647a0709ee2f29#egg=pybulletgym
 pyparsing==3.0.7
 python-dateutil==2.8.2
@@ -50,8 +50,8 @@ tensorboard==2.8.0
 tensorboard-data-server==0.6.1
 tensorboard-plugin-wit==1.8.1
 termcolor==1.1.0
-torch==1.10.0
-typing-extensions==4.0.1
+torch==1.11.0
+typing_extensions==4.0.1
 urllib3==1.26.8
 wandb==0.12.11
 Werkzeug==2.0.3
