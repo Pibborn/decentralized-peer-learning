@@ -19,7 +19,7 @@ from fullinfo import PeerFullInfo
 from fullinfo import FullInfoMultiThreading
 
 from utils import add_default_values_to_parser, log_reward_avg_in_wandb,\
-    add_default_values_to_train_parser, new_random_seed, make_env
+    add_default_values_to_train_parser, new_random_seed, make_env, Controller_Arguments
 
 
 def add_args():
@@ -54,7 +54,7 @@ def create_sac_agents(env, num_agents):
                     train_freq=args.train_freq,
                     gradient_steps=args.gradient_steps,
                     learning_starts=args.buffer_start_size, use_sde=True,
-                    learning_rate=args.learning_rate,
+                    learning_rate=CA.argument_for_every_agent(args.learning_rate,i),
                     tensorboard_log=str_folder,
                     seed=new_random_seed(),
                     device=args.device)
@@ -109,6 +109,7 @@ if __name__ == '__main__':
     # parse args
     arg_parser = add_args()
     args = arg_parser.parse_args()
+    CA = Controller_Arguments(args.agent_count)
 
     # create results/experiments folder
     time_string = datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S")

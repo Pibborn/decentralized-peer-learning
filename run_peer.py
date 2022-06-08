@@ -18,7 +18,7 @@ from peer import PeerGroup, make_peer_class
 
 from utils import str2bool, add_default_values_to_parser, \
     log_reward_avg_in_wandb, add_default_values_to_train_parser, \
-    new_random_seed, make_env
+    new_random_seed, make_env, Controller_Arguments
 
 
 def add_args():
@@ -77,6 +77,8 @@ if __name__ == '__main__':
     # parse args
     arg_parser = add_args()
     args = arg_parser.parse_args()
+    CA = Controller_Arguments(args.agent_count)
+
 
     # assert if any peer learning strategy is chosen peer learning must be True
     option_on = (args.use_trust or args.use_critic or args.use_agent_value)
@@ -104,28 +106,31 @@ if __name__ == '__main__':
                      dir=str_folder, mode=args.wandb)
 
     # initialize peer group
-    algo_args = dict(policy="MlpPolicy", verbose=1,
-                     policy_kwargs=dict(log_std_init=-3,
-                                        net_arch=args.net_arch),
-                     buffer_size=args.buffer_size,
-                     batch_size=args.batch_size,
-                     ent_coef="auto", gamma=args.gamma, tau=args.tau,
-                     train_freq=args.train_freq,
-                     gradient_steps=args.gradient_steps,
-                     learning_starts=args.buffer_start_size, use_sde=True,
-                     learning_rate=args.learning_rate,
-                     tensorboard_log=str_folder,
-                     device=args.device)
-
-    peer_args = dict(temperature=args.T, temp_decay=args.T_decay,
-                     algo_args=algo_args, env=args.env,
-                     use_trust=args.use_trust, use_critic=args.use_critic,
-                     buffer_size=args.trust_buffer_size,
-                     follow_steps=args.follow_steps,
-                     use_trust_buffer=args.use_trust_buffer,
-                     solo_training=not args.peer_learning,
-                     peers_sample_with_noise=args.peers_sample_with_noise,
-                     sample_random_actions=args.sample_random_actions)
+    algo_args = []
+    for i in range(args.agent_count):
+        algo_args.append(dict(policy="MlpPolicy", verbose=1,
+                         policy_kwargs=dict(log_std_init=-3,
+                                            net_arch=args.net_arch),
+                         buffer_size=args.buffer_size,
+                         batch_size=args.batch_size,
+                         ent_coef="auto", gamma=args.gamma, tau=args.tau,
+                         train_freq=args.train_freq,
+                         gradient_steps=args.gradient_steps,
+                         learning_starts=args.buffer_start_size, use_sde=True,
+                         learning_rate=CA.argument_for_every_agent(args.learning_rate,i),
+                         tensorboard_log=str_folder,
+                         device=args.device))
+    peer_args = []
+    for i in range(args.agent_count):
+        peer_args.append(dict(temperature=args.T, temp_decay=args.T_decay,
+                         algo_args=algo_args[i], env=args.env,
+                         use_trust=args.use_trust, use_critic=args.use_critic,
+                         buffer_size=args.trust_buffer_size,
+                         follow_steps=args.follow_steps,
+                         use_trust_buffer=args.use_trust_buffer,
+                         solo_training=not args.peer_learning,
+                         peers_sample_with_noise=args.peers_sample_with_noise,
+                         sample_random_actions=args.sample_random_actions))
 
     # create Peer classes
     SACPeer = make_peer_class(SAC)
@@ -135,10 +140,11 @@ if __name__ == '__main__':
     peers = []
     callbacks = []
     for i in range(args.agent_count):
+        args_for_agent = peer_args[i]
         if args.mix_agents and i % 2 != 0:
-            peers.append(TD3Peer(**peer_args, seed=new_random_seed()))
+            peers.append(TD3Peer(**args_for_agent, seed=new_random_seed()))
         else:
-            peers.append(SACPeer(**peer_args, seed=new_random_seed()))
+            peers.append(SACPeer(**args_for_agent, seed=new_random_seed()))
 
         # every agent gets its own callbacks
         callbacks.append([EvalCallback(eval_env=make_env(args.env,

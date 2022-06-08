@@ -33,6 +33,18 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+class Controller_Arguments():
+    def __init__(self, number_agents):
+        self.number_agents = number_agents
+
+    def argument_for_every_agent(self,input, i):
+        if len(input) == 1:
+            return input[0]
+        elif len(input) == self.number_agents:
+            return input[i]
+        else:
+            raise AssertionError(f'number of arguments {len(input)} has'
+                                 f' to be 1 or == number of agents ({self.number_agents})')
 
 
 def add_default_values_to_parser(parser):
@@ -55,8 +67,8 @@ def add_default_values_to_parser(parser):
     agent_parser.add_argument("--mix-agents", type=str2bool, nargs='?',
                               const=True, default=False)
 
-    agent_parser.add_argument("--net-arch", type=list,
-                              default=[400, 300])
+    agent_parser.add_argument("--net-arch", type=int, nargs='*',
+                              default= [400, 300])
 
     return parser
 
@@ -86,7 +98,7 @@ def add_default_values_to_train_parser(training_parser):
                                  default=10_000,
                                  help="Minimal length of a training_parser "
                                       "epoch.")
-    training_parser.add_argument("--learning_rate", type=float,
+    training_parser.add_argument("--learning_rate", type=float, nargs='*',
                                  default=3e-4)
     training_parser.add_argument("--tau", type=float, default=0.005)
     training_parser.add_argument("--gamma", type=float, default=0.99)
@@ -95,6 +107,8 @@ def add_default_values_to_train_parser(training_parser):
     training_parser.add_argument("--train_freq", type=int,
                                  default=1)
     return training_parser
+
+
 
 
 def log_reward_avg_in_wandb(callbacks):

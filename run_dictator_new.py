@@ -19,7 +19,7 @@ from peer import PeerGroup as Dictator
 from new_dictator import make_dictator_class, make_weighted_dictator_class
 
 from utils import add_default_values_to_parser, log_reward_avg_in_wandb, \
-    add_default_values_to_train_parser, new_random_seed, make_env, str2bool
+    add_default_values_to_train_parser, new_random_seed, make_env, Controller_Arguments, str2bool
 
 
 def add_args():
@@ -47,6 +47,7 @@ if __name__ == '__main__':
     # parse args
     arg_parser = add_args()
     args = arg_parser.parse_args()
+    CA = Controller_Arguments(args.agent_count)
 
     # create results/experiments folder
     time_string = datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
@@ -70,22 +71,25 @@ if __name__ == '__main__':
                      dir=str_folder, mode=args.wandb)
 
     # initialize dictator
-    algo_args = dict(policy="MlpPolicy", verbose=1,
-                     policy_kwargs=dict(log_std_init=-3,
-                                        net_arch=args.net_arch),
-                     buffer_size=args.buffer_size,
-                     batch_size=args.batch_size,
-                     ent_coef="auto", gamma=args.gamma, tau=args.tau,
-                     train_freq=args.train_freq,
-                     gradient_steps=args.gradient_steps,
-                     learning_starts=args.buffer_start_size, use_sde=True,
-                     learning_rate=args.learning_rate,
-                     tensorboard_log=str_folder,
-                     device=args.device)
+    for i in range(args.agent_count):
+        algo_args = dict(policy="MlpPolicy", verbose=1,
+                         policy_kwargs=dict(log_std_init=-3,
+                                            net_arch=args.net_arch),
+                         buffer_size=args.buffer_size,
+                         batch_size=args.batch_size,
+                         ent_coef="auto", gamma=args.gamma, tau=args.tau,
+                         train_freq=args.train_freq,
+                         gradient_steps=args.gradient_steps,
+                         learning_starts=args.buffer_start_size, use_sde=True,
+                         learning_rate=CA.argument_for_every_agent(args.learning_rate,i),
+                         tensorboard_log=str_folder,
+                         device=args.device)
 
-    peer_args = dict(temperature=args.T, temp_decay=args.T_decay,
+    peer_args = []
+    for i in range(args.agent_count):
+        peer_args.append(dict(temperature=args.T, temp_decay=args.T_decay,
                      algo_args=algo_args, env=args.env,
-                     sample_actions=True, peers_sample_with_noise=False)
+                     sample_actions=True, peers_sample_with_noise=False))
 
     # create Dictator classes
     if args.weighted_dictator:
@@ -99,10 +103,11 @@ if __name__ == '__main__':
     subs = []
     callbacks = []
     for i in range(args.agent_count):
+        args_for_agent = peer_args[i]
         if args.mix_agents and i % 2 != 0:
-            subs.append(TD3Sub(**peer_args, seed=new_random_seed()))
+            subs.append(TD3Sub(**args_for_agent, seed=new_random_seed()))
         else:
-            subs.append(SACSub(**peer_args, seed=new_random_seed()))
+            subs.append(SACSub(**args_for_agent, seed=new_random_seed()))
 
         # every agent gets its own callbacks
         callbacks.append([EvalCallback(eval_env=make_env(args.env),
