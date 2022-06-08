@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=11_05_22_peer_4_agent_Random_follow_10_HalfCheetahBulletEnv-v0      # Job name
+#SBATCH --job-name=peer_4_agent_Random_follow_10_HalfCheetahBulletEnv-v0_11_05_22     # Job name
 #SBATCH -p smp                 # The partition your job should run #in. devel smp parallel
 #SBATCH --account=m2_datamining   # Specify allocation to charge against m$
 #SBATCH --time=96:00:00          # Run time (hh_mm_ss) - 30 seconds
@@ -27,7 +27,7 @@ export http_proxy=http://webproxy.zdv.uni-mainz.de:8888
 export https_proxy=https://webproxy.zdv.uni-mainz.de:8888
 source virt/bin/activate
 wandb offline
-srun python run_peer.py --save-name peer_4_agent_Random_follow_10_HalfCheetahBulletEnv-v0_11_05_22 \
+srun python run_peer.py --save-name $SLURM_JOB_NAME \
   --job_id $SLURM_JOB_ID --env HalfCheetahBulletEnv-v0 --agent-count 4 --batch-size 256 --buffer-size 300_000 \
   --steps 1_000_000 --buffer-start-size 10_000 --learning_rate 7.3e-4 --gamma 0.98 --gradient_steps 8 --tau 0.02 --train_freq 8 \
   --seed $SLURM_JOB_ID --use-critic False --use-agent-value False --use-trust True --peers-sample-with-noise False \

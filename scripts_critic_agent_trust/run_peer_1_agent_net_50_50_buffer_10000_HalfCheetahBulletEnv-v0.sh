@@ -1,13 +1,13 @@
 #!/bin/bash
 
-#SBATCH --job-name=11_05_22_peer_4_agent_Random_HalfCheetahBulletEnv-v0      # Job name
+#SBATCH --job-name=peer_1_agent_net_50_50_buffer_10000_HalfCheetahBulletEnv-v0      # Job name
 #SBATCH -p smp                 # The partition your job should run #in. devel smp parallel
 #SBATCH --account=m2_datamining   # Specify allocation to charge against m$
-#SBATCH --time=96:00:00          # Run time (hh_mm_ss) - 30 seconds
+#SBATCH --time=24:00:00          # Run time (hh_mm_ss) - 30 seconds
 #SBATCH --tasks=1                 # Total number of tasks (=cores if CPU i$
 #SBATCH --nodes=1                 # The number of nodes you need
 #SBATCH --cpus-per-task=10         # Total number of cores for the single task
-#SBATCH --mem=20G                  # The amount of RAM requested
+#SBATCH --mem=10G                  # The amount of RAM requested
 
 #SBATCH -o \%x_\%j_profile.out # Specify stdout output file where \%j e$
 #SBATCH -C anyarch
@@ -28,7 +28,7 @@ export https_proxy=https://webproxy.zdv.uni-mainz.de:8888
 source virt/bin/activate
 wandb offline
 srun python run_peer.py --save-name $SLURM_JOB_NAME \
-  --job_id $SLURM_JOB_ID --env HalfCheetahBulletEnv-v0 --agent-count 4 --batch-size 256 --buffer-size 300_000 \
+  --job_id $SLURM_JOB_ID --env HalfCheetahBulletEnv-v0 --agent-count 1 --batch-size 256 --buffer-size 10_000 \
   --steps 1_000_000 --buffer-start-size 10_000 --learning_rate 7.3e-4 --gamma 0.98 --gradient_steps 8 --tau 0.02 --train_freq 8 \
-  --seed $SLURM_JOB_ID --use-critic False --use-agent-value False --use-trust True --peers-sample-with-noise False \
-  --sample_random_actions True --follow-steps 1
+  --seed $SLURM_JOB_ID --use-critic True --use-agent-value True --use-trust True --peers-sample-with-noise False\
+  --net-arch 50  50
