@@ -64,8 +64,8 @@ def add_default_values_to_parser(parser):
                         choices=["online", "offline", "disabled"])
     # Agents
     agent_parser = parser.add_argument_group("Agent")
-    agent_parser.add_argument("--mix-agents", type=str2bool, nargs='?',
-                              const=True, default=False)
+    agent_parser.add_argument("--mix-agents", type=str, nargs='*',
+                              default = "SAC")
 
     agent_parser.add_argument("--net-arch", type=int, nargs='*',
                               default= [400, 300])

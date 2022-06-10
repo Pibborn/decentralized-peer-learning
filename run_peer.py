@@ -141,10 +141,15 @@ if __name__ == '__main__':
     callbacks = []
     for i in range(args.agent_count):
         args_for_agent = peer_args[i]
-        if args.mix_agents and i % 2 != 0:
+        if CA.argument_for_every_agent(args.mix_agents ,i) in 'TD3':
+            args_for_agent["algo_args"].pop("ent_coef")
+            args_for_agent["algo_args"].pop("use_sde")
+            args_for_agent["algo_args"]["policy_kwargs"].pop("log_std_init")
             peers.append(TD3Peer(**args_for_agent, seed=new_random_seed()))
-        else:
+        elif CA.argument_for_every_agent(args.mix_agents, i) in 'SAC':
             peers.append(SACPeer(**args_for_agent, seed=new_random_seed()))
+        else:
+            raise NotImplementedError(f"The Agent {CA.argument_for_every_agent(args.mix_agents ,i)} is not implemented")
 
         # every agent gets its own callbacks
         callbacks.append([EvalCallback(eval_env=make_env(args.env,
@@ -164,7 +169,7 @@ if __name__ == '__main__':
                             gym.spec(args.env).max_episode_steps)
 
     n_epochs = args.steps // max_episode_steps
-
+    print('start learning ')
     # train the peer group
     peer_group.learn(n_epochs, callbacks=callbacks,
                      eval_log_path=str_folder,
