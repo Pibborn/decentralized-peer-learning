@@ -99,7 +99,7 @@ def add_default_values_to_train_parser(training_parser):
                                  help="Minimal length of a training_parser "
                                       "epoch.")
     training_parser.add_argument("--learning_rate", type=float, nargs='*',
-                                 default=3e-4)
+                                 default=[3e-4])
     training_parser.add_argument("--tau", type=float, default=0.005)
     training_parser.add_argument("--gamma", type=float, default=0.99)
     training_parser.add_argument("--gradient_steps", type=int,

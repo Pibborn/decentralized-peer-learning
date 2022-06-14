@@ -3,14 +3,21 @@ import glob
 from pathlib import Path
 import json
 
+
 def run():
     directory = [
-        "dictator_new_4_agent_HalfCheetahBulletEnv-v0_14_05_22",
-        "dictator_new_4_agent_Walker2DPyBulletEnv-v0_14_05_22"
-
-
-
-
+        # 'run_peer_4_agent_individual_learning_rate_sr_5_HalfCheetahBulletEnv-v0',
+        # 'run_peer_4_agent_individual_learning_rate_sr_3_HalfCheetahBulletEnv-v0',
+        # 'run_peer_1_agent_net_250_200_HalfCheetahBulletEnv-v0.sh',
+        # 'run_peer_1_agent_net_125_100_HalfCheetahBulletEnv-v0.sh',
+        # 'run_peer_1_agent_net_500_400_HalfCheetahBulletEnv-v0.sh',
+        # 'run_peer_1_agent_net_25_25_HalfCheetahBulletEnv-v0.sh',
+        'run_peer_1_agent_net_350_300_HalfCheetahBulletEnv-v0.sh'
+        # 'run_peer_4_agent_net_500_400_HalfCheetahBulletEnv-v0.sh',
+        # 'run_peer_4_agent_net_25_25_HalfCheetahBulletEnv-v0.sh',
+        # 'run_peer_4_agent_net_350_300_HalfCheetahBulletEnv-v0.sh',
+        # 'run_peer_4_agent_net_250_200_HalfCheetahBulletEnv-v0.sh',
+        # 'run_peer_4_agent_net_125_100_HalfCheetahBulletEnv-v0.sh',
     ]
     wandb_entity_name = 'jgu-wandb'
     wandb_project = 'peer-learning'
@@ -26,16 +33,16 @@ def upload_experiment(Path_to_experiments, setup, upload_identifier, wandb_entit
     path_to_runs = Path_to_experiments / setup
     list_of_runs = glob.glob(f"{path_to_runs}/*")  # * means all if need specific format then *.csv
     runs = get_all_results(list_of_runs)
-    #runs = get_run_with_most_results(list_of_runs)
+    # runs = get_run_with_most_results(list_of_runs)
     for run in runs:
         try:
             path_to_run_to_upload = path_to_runs / run / 'wandb'
             id = f"{setup}__{run}{upload_identifier}"
             path_to_run_to_upload = get_path_to_wandb_file(path_to_run_to_upload)
             command = f"wandb sync -e {wandb_entity_name} " \
-                  f"-p {wandb_project}" \
-                  f" --id {id}" \
-                  f" {path_to_run_to_upload}"
+                      f"-p {wandb_project}" \
+                      f" --id {id}" \
+                      f" {path_to_run_to_upload}"
             print(command)
             os.system(command)
         except FileNotFoundError:
@@ -61,6 +68,7 @@ def check_if_multi_processing_was_used(path_to_log_file):
                         return True
     return False
 
+
 def check_if_CAT_was_used(path_to_log_file):
     with open(path_to_log_file) as f:
         data = list(json.load(f).items())
@@ -71,8 +79,10 @@ def check_if_CAT_was_used(path_to_log_file):
                         return True
     return False
 
+
 def get_all_results(list_of_runs):
     return [Path(run_path).name for run_path in list_of_runs]
+
 
 def get_run_with_most_results(list_of_runs):
     run_with_most_results = ''
