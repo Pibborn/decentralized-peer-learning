@@ -33,6 +33,10 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
+def str2func(v):
+        function  = eval(v)
+        return function
 class Controller_Arguments():
     def __init__(self, number_agents):
         self.number_agents = number_agents
@@ -98,7 +102,7 @@ def add_default_values_to_train_parser(training_parser):
                                  default=10_000,
                                  help="Minimal length of a training_parser "
                                       "epoch.")
-    training_parser.add_argument("--learning_rate", type=float, nargs='*',
+    training_parser.add_argument("--learning_rate", type=str2func, nargs='*',
                                  default=3e-4)
     training_parser.add_argument("--tau", type=float, default=0.005)
     training_parser.add_argument("--gamma", type=float, default=0.99)
