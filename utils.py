@@ -114,7 +114,7 @@ def add_default_values_to_train_parser(training_parser):
 def log_reward_avg_in_wandb(callbacks):
     results = []
     for callback in callbacks:
-        eval_callback = callback[0]
+        eval_callback = callback[1]
         result = eval_callback.evaluations_results
         results.append(np.mean(result))
     wandb.log({'reward_avg': np.mean(results)})
