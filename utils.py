@@ -42,13 +42,17 @@ class Controller_Arguments():
         self.number_agents = number_agents
 
     def argument_for_every_agent(self,input, i):
-        if len(input) == 1:
-            return input[0]
-        elif len(input) == self.number_agents:
-            return input[i]
+        if type(input) is list:
+            if len(input) == 1:
+                return input[0]
+            elif len(input) == self.number_agents:
+                return input[i]
+            else:
+                raise AssertionError(f'number of arguments {len(input)} has'
+                                     f' to be 1 or == number of agents ({self.number_agents})'
+                                     f'input is {input}')
         else:
-            raise AssertionError(f'number of arguments {len(input)} has'
-                                 f' to be 1 or == number of agents ({self.number_agents})')
+            raise AssertionError(f'input is not a list input is {input} {type(input)}')
 
 
 def add_default_values_to_parser(parser):
@@ -69,7 +73,7 @@ def add_default_values_to_parser(parser):
     # Agents
     agent_parser = parser.add_argument_group("Agent")
     agent_parser.add_argument("--mix-agents", type=str, nargs='*',
-                              default = "SAC")
+                              default = ["SAC"])
 
     agent_parser.add_argument("--net-arch", type=int, nargs='*',
                               default= [400, 300])
