@@ -144,10 +144,16 @@ if __name__ == '__main__':
     eval_envs = []
     for i in range(args.agent_count):
         args_for_agent = peer_args[i]
-        if args.mix_agents and i % 2 != 0:
+        if CA.argument_for_every_agent(args.mix_agents ,i) in 'TD3':
+            args_for_agent["algo_args"].pop("ent_coef")
+            args_for_agent["algo_args"].pop("use_sde")
+            args_for_agent["algo_args"]["policy_kwargs"].pop("log_std_init")
             peers.append(TD3Peer(**args_for_agent, seed=new_random_seed()))
-        else:
+        elif CA.argument_for_every_agent(args.mix_agents, i) in 'SAC':
             peers.append(SACPeer(**args_for_agent, seed=new_random_seed()))
+        else:
+            raise NotImplementedError(f"The Agent {CA.argument_for_every_agent(args.mix_agents ,i)} is not implemented")
+
         eval_env = make_env(args.env, args.n_eval_episodes)
         # every agent gets its own callbacks
         callbacks.append([WandbCallback(gradient_save_freq=args.eval_interval,
@@ -167,7 +173,7 @@ if __name__ == '__main__':
                                          eval_freq=args.eval_interval,
                                          n_eval_episodes=args.n_eval_episodes)
         callbacks[i].append(peer_callback)
-        
+
 
     # calculate number of epochs based on episode length
     max_episode_steps = max(args.min_epoch_length,
