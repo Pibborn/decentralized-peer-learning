@@ -81,6 +81,8 @@ class PeerEvalCallback(EvalCallback):
         :return: A matrix of diversity values between agents based on the L2 norm.
         """
         n_agents = len(self.peer_group.peers)
+        if n_agents == 1:
+            return 0
         diversity_matrix = np.zeros((n_agents, n_agents))
         for agent_1, agent_2 in combinations(range(n_agents), 2):
             diversity = np.linalg.norm(actions[agent_1]-actions[agent_2], ord=2)
