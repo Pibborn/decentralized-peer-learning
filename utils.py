@@ -107,7 +107,11 @@ def add_default_values_to_train_parser(training_parser):
                                  help="Minimal length of a training_parser "
                                       "epoch.")
     training_parser.add_argument("--learning_rate", type=str2func, nargs='*',
-                                 default=3e-4)
+                                 default=3e-4,
+                                 help='Learning rate for adam optimizer,'
+                                      'the same learning rate will be used for'
+                                      ' all networks (Q-Values, Actor and Value function)'
+                                      ' it can be a function of the current progress remaining (from 1 to 0)')
     training_parser.add_argument("--tau", type=float, default=0.005)
     training_parser.add_argument("--gamma", type=float, default=0.99)
     training_parser.add_argument("--gradient_steps", type=int,
