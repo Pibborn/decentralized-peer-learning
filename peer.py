@@ -23,6 +23,7 @@ class PeerGroup:
         self.peers = peers
         self.lr = lr
         self.switch_ratio = switch_ratio
+        self.active_peer = None  # index of currently learning peer
 
         if use_agent_values:
             self.agent_values = np.full(len(peers), init_agent_values,
@@ -80,12 +81,18 @@ class PeerGroup:
                 solo_epoch = not solo_epoch
 
             for p, peer, callback in zip(it.count(), self.peers, callbacks):
+                self.active_peer = p
                 peer.learn(solo_epoch, total_timesteps=max_epoch_len,
                            callback=callback, tb_log_name=f"Peer{p}",
                            reset_num_timesteps=False,
                            log_interval=None, **kwargs)
                 # update epoch for temperature decay
                 peer.epoch += 1
+
+        self.active_peer = None
+
+    def __len__(self):
+        return len(self.peers)
 
 
 def make_peer_class(cls: Type[OffPolicyAlgorithm]):

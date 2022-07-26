@@ -15,6 +15,7 @@ import warnings
 import os
 import wandb
 
+
 class PeerEvalCallback(EvalCallback):
     """
     Callback to track collective measurements about peers.
@@ -35,7 +36,7 @@ class PeerEvalCallback(EvalCallback):
         use a stochastic or deterministic actions.
     :param render: Whether to render or not the environment during evaluation
     :param verbose:
-    :param warn: Passed to ``evaluate_policy`` (warns if ``eval_env`` has not been
+    :param warn: Passed to ``evaluate_policy`` (warns if ``eval_env`` has notbeen
         wrapped with a Monitor wrapper)
     """
 
@@ -49,9 +50,13 @@ class PeerEvalCallback(EvalCallback):
         self.peer_group = peer_group
         self.eval_envs = eval_envs
         self.n_samples = n_samples
+
+        self.follow_matrix = np.zeros((len(peer_group), len(peer_group)))
+
         super().__init__(**kwargs)
 
     def _on_step(self) -> bool:
+        # self.accumulate_followed_peers()  # needs to be done at every step
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
             super()._on_step()
             # skip diversity evaluation if first epoch for any peer 
@@ -71,6 +76,7 @@ class PeerEvalCallback(EvalCallback):
                 action, _ = peer.policy.predict(samples, deterministic=True)
                 actions.append(action)
             diversity = self.track_diversity(actions)
+            # self.track_followed_agent()
         return True
 
     def track_diversity(self, actions):
@@ -94,3 +100,14 @@ class PeerEvalCallback(EvalCallback):
             wandb.log({'Peer{}_0/eval/diversity_mean'.format(peer_id): np.mean(diversity_matrix[peer_id, :])}, commit=False)
         wandb.log({'average_diversity': np.mean(diversity_matrix)})
         return diversity
+
+    def accumulate_followed_peers(self):
+        peer = self.peer_group.active_peer
+        self.follow_matrix[peer, self.peer_group.peers[peer].followed_peer] \
+            += 1
+
+    def track_followed_agent(self):
+        for (peer, followed_peer), count in np.ndenumerate(self.follow_matrix):
+            wandb.log({'Peer{}_0/eval/follow_count{}'.format(peer,
+                                                             followed_peer):
+                       count},  commit=False)
