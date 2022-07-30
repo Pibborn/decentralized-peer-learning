@@ -15,6 +15,7 @@ import warnings
 import os
 import wandb
 
+
 class PeerEvalCallback(EvalCallback):
     """
     Callback to track collective measurements about peers.
@@ -35,9 +36,12 @@ class PeerEvalCallback(EvalCallback):
         use a stochastic or deterministic actions.
     :param render: Whether to render or not the environment during evaluation
     :param verbose:
-    :param warn: Passed to ``evaluate_policy`` (warns if ``eval_env`` has not been
+    :param warn: Passed to ``evaluate_policy`` (warns if ``eval_env`` has notbeen
         wrapped with a Monitor wrapper)
     """
+
+    # suboptimal but quick solution
+    follow_matrix = None
 
     def __init__(
         self,
@@ -49,11 +53,17 @@ class PeerEvalCallback(EvalCallback):
         self.peer_group = peer_group
         self.eval_envs = eval_envs
         self.n_samples = n_samples
+
+        if PeerEvalCallback.follow_matrix is None:
+            PeerEvalCallback.follow_matrix = np.zeros((len(peer_group),
+                                                       len(peer_group)))
+
         super().__init__(**kwargs)
 
     def _on_step(self) -> bool:
+        super()._on_step()
+        self.accumulate_followed_peers()  # needs to be done at every step
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
-            super()._on_step()
             # skip diversity evaluation if first epoch for any peer 
             minimum_samples_in_buffer = np.min([self.peer_group.peers[i].replay_buffer.pos for i in range(len(self.peer_group.peers))])
             if self.n_samples > minimum_samples_in_buffer:
@@ -71,6 +81,7 @@ class PeerEvalCallback(EvalCallback):
                 action, _ = peer.policy.predict(samples, deterministic=True)
                 actions.append(action)
             diversity = self.track_diversity(actions)
+            self.track_followed_agent()
         return True
 
     def track_diversity(self, actions):
@@ -85,7 +96,8 @@ class PeerEvalCallback(EvalCallback):
             return 0
         diversity_matrix = np.zeros((n_agents, n_agents))
         for agent_1, agent_2 in combinations(range(n_agents), 2):
-            diversity = np.linalg.norm(actions[agent_1]-actions[agent_2], ord=2)
+            # ord=2 is implicit for vectors (fix for Windows)
+            diversity = np.linalg.norm(actions[agent_1] - actions[agent_2])
             diversity_matrix[agent_1, agent_2] = diversity
             diversity_matrix[agent_2, agent_1] = diversity
             wandb.log({'Peer{}_0/eval/diversity_{}'.format(agent_1, agent_2): diversity}, commit=False)
@@ -94,3 +106,15 @@ class PeerEvalCallback(EvalCallback):
             wandb.log({'Peer{}_0/eval/diversity_mean'.format(peer_id): np.mean(diversity_matrix[peer_id, :])}, commit=False)
         wandb.log({'average_diversity': np.mean(diversity_matrix)})
         return diversity
+
+    def accumulate_followed_peers(self):
+        peer = self.peer_group.active_peer
+        followed_peer = self.peer_group.peers[peer].followed_peer
+        PeerEvalCallback.follow_matrix[peer, followed_peer] += 1
+
+    def track_followed_agent(self):
+        for (peer, followed_peer), count in \
+                np.ndenumerate(PeerEvalCallback.follow_matrix):
+            wandb.log({'Peer{}_0/eval/follow_count{}'.format(peer,
+                                                             followed_peer):
+                       count},  commit=False)
