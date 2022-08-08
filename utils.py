@@ -35,7 +35,7 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 def str2func(v):
-        function  = eval(v)
+        function = eval(v)
         return function
 class Controller_Arguments():
     def __init__(self, number_agents):
@@ -107,7 +107,7 @@ def add_default_values_to_train_parser(training_parser):
                                  help="Minimal length of a training_parser "
                                       "epoch.")
     training_parser.add_argument("--learning_rate", type=str2func, nargs='*',
-                                 default=3e-4,
+                                 default=[3e-4],
                                  help='Learning rate for adam optimizer,'
                                       'the same learning rate will be used for'
                                       ' all networks (Q-Values, Actor and Value function)'
