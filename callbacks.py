@@ -83,8 +83,12 @@ class PeerEvalCallback(EvalCallback):
             for peer in self.peer_group.peers:
                 action, _ = peer.policy.predict(samples, deterministic=True)
                 actions.append(action)
-            diversity = self.track_diversity(actions)
+            if 'agent_values' in self.peer_group.__dict__:
+                self.track_agent_values()
+            if 'trust_values' in self.peer_group.peers[0].__dict__:
+                self.track_trust_values()
             self.track_followed_agent()
+            self.track_diversity(actions)
         return True
 
     def track_diversity(self, actions):
@@ -115,6 +119,18 @@ class PeerEvalCallback(EvalCallback):
                       commit=False)
         wandb.log({'average_diversity': np.mean(diversity_matrix)})
         return diversity
+
+    def track_agent_values(self):
+        wandb.log({'agent_values': self.peer_group.agent_values}, commit=False)
+        return True
+
+    def track_trust_values(self):
+        n_agents = len(self.peer_group.peers)
+        for i in range(n_agents):
+            trust_i = self.peer_group.peers[i].trust_values
+            for j, el in np.ndenumerate(trust_i):
+                wandb.log({'Peer{}_0/eval/trust_{}'.format(i, j[0]): el}, commit=False)
+        return True
 
     def accumulate_followed_peers(self):
         peer = self.peer_group.active_peer
