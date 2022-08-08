@@ -108,7 +108,8 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                      use_trust=False, use_critic=False, init_trust_values=200,
                      buffer_size=1000, follow_steps=10, seed=None,
                      use_trust_buffer=True, solo_training=False,
-                     peers_sample_with_noise=False, sample_random_actions=False):
+                     peers_sample_with_noise=False,
+                     sample_random_actions=False):
             super(Peer, self).__init__(**algo_args, env=make_env(env),
                                        seed=seed)
             # create noise matrix on the correct device

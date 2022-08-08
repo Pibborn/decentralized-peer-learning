@@ -24,20 +24,23 @@ class PeerEvalCallback(EvalCallback):
 
       When using multiple environments, each call to  ``env.step()``
       will effectively correspond to ``n_envs`` steps.
-      To account for that, you can use ``eval_freq = max(eval_freq // n_envs, 1)``
+      To account for that, you can use
+      ``eval_freq = max(eval_freq // n_envs, 1)``
 
     :param peer_group: The group of peers
     :param eval_env: The environment used for initialization
     :param n_eval_episodes: The number of episodes to test the agent
-    :param eval_freq: Evaluate the agent every ``eval_freq`` call of the callback.
-    :param log_path: Path to a folder where the evaluations (``evaluations.npz``)
-        will be saved. It will be updated at each evaluation.
+    :param eval_freq: Evaluate the agent every ``eval_freq`` call of the
+        callback.
+    :param log_path: Path to a folder where the evaluations
+        (``evaluations.npz``) will be saved. It will be updated at each
+        evaluation.
     :param deterministic: Whether the evaluation should
         use a stochastic or deterministic actions.
     :param render: Whether to render or not the environment during evaluation
     :param verbose:
-    :param warn: Passed to ``evaluate_policy`` (warns if ``eval_env`` has notbeen
-        wrapped with a Monitor wrapper)
+    :param warn: Passed to ``evaluate_policy`` (warns if ``eval_env`` has
+        not been wrapped with a Monitor wrapper)
     """
 
     # suboptimal but quick solution
@@ -75,7 +78,7 @@ class PeerEvalCallback(EvalCallback):
                 num_sampled_states = states//len(self.peer_group.peers)
                 sample = peer.replay_buffer.sample(num_sampled_states).observations
                 samples.append(sample)
-            samples = torch.cat(samples, axis=0)
+            samples = torch.cat(samples, dim=0)
             actions = []
             for peer in self.peer_group.peers:
                 action, _ = peer.policy.predict(samples, deterministic=True)
@@ -88,8 +91,10 @@ class PeerEvalCallback(EvalCallback):
         """Computes and tracks a diversity measure between agent actions.
 
         Args:
-            actions (np.ndarray): a 3d tensor with shape (n_agents, self.n_samples, env.action_size).
-        :return: A matrix of diversity values between agents based on the L2 norm.
+            actions (np.ndarray): a 3d tensor with shape
+            (n_agents, self.n_samples, env.action_size).
+        :return: A matrix of diversity values between agents based on the
+            L2 norm.
         """
         n_agents = len(self.peer_group.peers)
         if n_agents == 1:
@@ -100,10 +105,14 @@ class PeerEvalCallback(EvalCallback):
             diversity = np.linalg.norm(actions[agent_1] - actions[agent_2])
             diversity_matrix[agent_1, agent_2] = diversity
             diversity_matrix[agent_2, agent_1] = diversity
-            wandb.log({'Peer{}_0/eval/diversity_{}'.format(agent_1, agent_2): diversity}, commit=False)
-            wandb.log({'Peer{}_0/eval/diversity_{}'.format(agent_2, agent_1): diversity}, commit=False)
+            wandb.log({'Peer{}_0/eval/diversity_{}'.format(agent_1, agent_2):
+                       diversity}, commit=False)
+            wandb.log({'Peer{}_0/eval/diversity_{}'.format(agent_2, agent_1):
+                       diversity}, commit=False)
         for peer_id in range(len(self.peer_group.peers)):
-            wandb.log({'Peer{}_0/eval/diversity_mean'.format(peer_id): np.mean(diversity_matrix[peer_id, :])}, commit=False)
+            wandb.log({'Peer{}_0/eval/diversity_mean'.format(peer_id):
+                       np.mean(diversity_matrix[peer_id, :])},
+                      commit=False)
         wandb.log({'average_diversity': np.mean(diversity_matrix)})
         return diversity
 
@@ -112,6 +121,7 @@ class PeerEvalCallback(EvalCallback):
         followed_peer = self.peer_group.peers[peer].followed_peer
         PeerEvalCallback.follow_matrix[peer, followed_peer] += 1
 
+    @staticmethod
     def track_followed_agent(self):
         for (peer, followed_peer), count in \
                 np.ndenumerate(PeerEvalCallback.follow_matrix):

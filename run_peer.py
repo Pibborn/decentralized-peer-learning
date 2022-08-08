@@ -8,7 +8,6 @@ import pybullet_envs  # noqa
 from pathlib import Path
 
 from stable_baselines3 import SAC, TD3
-from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.utils import set_random_seed
 
 import wandb
@@ -38,10 +37,10 @@ def add_args():
     peer_learning = parser.add_argument_group("Peer Learning")
     peer_learning.add_argument("--follow-steps", type=int, default=10)
     peer_learning.add_argument("--switch-ratio", type=float, default=1,
-                               help="How many times peer training compared to solo training "
-                                    "Ratio of peer learning episodes to solo"
-                                    "episodes; 0 -> only peer learning "
-                                    "episodes."
+                               help="How many times peer training compared to "
+                                    "solo training Ratio of peer learning "
+                                    "episodes to solo episodes; 0 -> only "
+                                    "peer learning episodes."
                                     "ratio 0 {'solo': 0, 'peer': 100}"
                                     "ratio 0.2 {'solo': 83, 'peer': 17}"
                                     "ratio 0.25 {'solo': 80, 'peer': 20}"
@@ -66,8 +65,8 @@ def add_args():
     peer_learning.add_argument("--trust-buffer-size", type=int, default=1000)
     peer_learning.add_argument("--use-critic", type=str2bool, nargs="?",
                                const=True, default=True)
-    peer_learning.add_argument("--sample_random_actions", type=str2bool, nargs="?",
-                               const=True, default=False)
+    peer_learning.add_argument("--sample_random_actions", type=str2bool,
+                               nargs="?", const=True, default=False)
     peer_learning.add_argument("--trust-lr", type=float, default=0.001)
     peer_learning.add_argument("--T", type=float, default=1)
     peer_learning.add_argument("--T-decay", type=float, default=0)
@@ -80,7 +79,6 @@ if __name__ == '__main__':
     arg_parser = add_args()
     args = arg_parser.parse_args()
     CA = Controller_Arguments(args.agent_count)
-
 
     # assert if any peer learning strategy is chosen peer learning must be True
     option_on = (args.use_trust or args.use_critic or args.use_agent_value)
@@ -119,7 +117,9 @@ if __name__ == '__main__':
                          train_freq=args.train_freq,
                          gradient_steps=args.gradient_steps,
                          learning_starts=args.buffer_start_size, use_sde=True,
-                         learning_rate=CA.argument_for_every_agent(args.learning_rate,i),
+                         learning_rate=CA.argument_for_every_agent(
+                             args.learning_rate, i
+                         ),
                          tensorboard_log=str_folder,
                          device=args.device))
     peer_args = []
@@ -144,7 +144,7 @@ if __name__ == '__main__':
     eval_envs = []
     for i in range(args.agent_count):
         args_for_agent = peer_args[i]
-        if CA.argument_for_every_agent(args.mix_agents ,i) in 'TD3':
+        if CA.argument_for_every_agent(args.mix_agents, i) in 'TD3':
             args_for_agent["algo_args"].pop("ent_coef")
             args_for_agent["algo_args"].pop("use_sde")
             args_for_agent["algo_args"]["policy_kwargs"].pop("log_std_init")
@@ -152,7 +152,10 @@ if __name__ == '__main__':
         elif CA.argument_for_every_agent(args.mix_agents, i) in 'SAC':
             peers.append(SACPeer(**args_for_agent, seed=new_random_seed()))
         else:
-            raise NotImplementedError(f"The Agent {CA.argument_for_every_agent(args.mix_agents ,i)} is not implemented")
+            raise NotImplementedError(
+                f"The Agent{CA.argument_for_every_agent(args.mix_agents ,i)} "
+                f"is not implemented"
+            )
 
         eval_env = make_env(args.env, args.n_eval_episodes)
         # every agent gets its own callbacks
@@ -173,7 +176,6 @@ if __name__ == '__main__':
                                          eval_freq=args.eval_interval,
                                          n_eval_episodes=args.n_eval_episodes)
         callbacks[i].append(peer_callback)
-
 
     # calculate number of epochs based on episode length
     max_episode_steps = max(args.min_epoch_length,

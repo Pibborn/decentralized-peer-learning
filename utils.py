@@ -34,14 +34,17 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
+
 def str2func(v):
-        function = eval(v)
-        return function
+    function = eval(v)
+    return function
+
+
 class Controller_Arguments():
     def __init__(self, number_agents):
         self.number_agents = number_agents
 
-    def argument_for_every_agent(self,input, i):
+    def argument_for_every_agent(self, input, i):
         if type(input) is list:
             if len(input) == 1:
                 return input[0]
@@ -49,10 +52,12 @@ class Controller_Arguments():
                 return input[i]
             else:
                 raise AssertionError(f'number of arguments {len(input)} has'
-                                     f' to be 1 or == number of agents ({self.number_agents})'
-                                     f'input is {input}')
+                                     f' to be 1 or == number of agents'
+                                     f'({self.number_agents}) input is'
+                                     f' {input}')
         else:
-            raise AssertionError(f'input is not a list input is {input} {type(input)}')
+            raise AssertionError(f'input is not a list input is{input} '
+                                 f'{type(input)}')
 
 
 def add_default_values_to_parser(parser):
@@ -73,10 +78,10 @@ def add_default_values_to_parser(parser):
     # Agents
     agent_parser = parser.add_argument_group("Agent")
     agent_parser.add_argument("--mix-agents", type=str, nargs='*',
-                              default = ["SAC"])
+                              default=["SAC"])
 
     agent_parser.add_argument("--net-arch", type=int, nargs='*',
-                              default= [400, 300])
+                              default=[400, 300])
 
     return parser
 
@@ -108,10 +113,12 @@ def add_default_values_to_train_parser(training_parser):
                                       "epoch.")
     training_parser.add_argument("--learning_rate", type=str2func, nargs='*',
                                  default=[3e-4],
-                                 help='Learning rate for adam optimizer,'
-                                      'the same learning rate will be used for'
-                                      ' all networks (Q-Values, Actor and Value function)'
-                                      ' it can be a function of the current progress remaining (from 1 to 0)')
+                                 help='Learning rate for adam optimizer, '
+                                      'the same learning rate will be used '
+                                      'for all networks (Q-Values, Actor and '
+                                      'Value function) it can be a function'
+                                      ' of the current progress remaining '
+                                      '(from 1 to 0)')
     training_parser.add_argument("--tau", type=float, default=0.005)
     training_parser.add_argument("--gamma", type=float, default=0.99)
     training_parser.add_argument("--gradient_steps", type=int,
@@ -119,8 +126,6 @@ def add_default_values_to_train_parser(training_parser):
     training_parser.add_argument("--train_freq", type=int,
                                  default=1)
     return training_parser
-
-
 
 
 def log_reward_avg_in_wandb(callbacks):
