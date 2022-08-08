@@ -60,8 +60,9 @@ class PeerGroup:
                 counts[batch[i][2]] += 1
                 targets[batch[i][2]] += target
 
-        # ensure counts are >= 1, targets are still 0
+        # ensure counts are >= 1, don't change these values
         counts[counts == 0] = 1
+        targets[counts == 0] = self.agent_values[counts == 0]
 
         targets /= counts
         self.agent_values += self.lr * (targets - self.agent_values)
