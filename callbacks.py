@@ -124,7 +124,8 @@ class PeerEvalCallback(EvalCallback):
         n_agents = len(self.peer_group.peers)
         for i in range(n_agents):
             agent_value = self.peer_group.agent_values[i]
-            wandb.log({'Peer{}_0/eval/agent_value'.format(i): agent_value}, commit=False)
+            wandb.log({'Peer{}_0/eval/agent_value'.format(i): agent_value},
+                      commit=False)
         return True
 
     def track_trust_values(self):
@@ -132,7 +133,8 @@ class PeerEvalCallback(EvalCallback):
         for i in range(n_agents):
             trust_i = self.peer_group.peers[i].trust_values
             for j, el in np.ndenumerate(trust_i):
-                wandb.log({'Peer{}_0/eval/trust_{}'.format(i, j[0]): el}, commit=False)
+                wandb.log({'Peer{}_0/eval/trust_{}'.format(i, j[0]): el},
+                          commit=False)
         return True
 
     def accumulate_followed_peers(self):
