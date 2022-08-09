@@ -45,6 +45,7 @@ class PeerEvalCallback(EvalCallback):
 
     # suboptimal but quick solution
     follow_matrix = None
+    last_logged_matrix = None
 
     def __init__(
         self,
@@ -64,8 +65,8 @@ class PeerEvalCallback(EvalCallback):
         super().__init__(**kwargs)
 
     def _on_step(self) -> bool:
-        super()._on_step()
         self.accumulate_followed_peers()  # needs to be done at every step
+        super()._on_step()
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
             # skip diversity evaluation if first epoch for any peer 
             minimum_samples_in_buffer = np.min([self.peer_group.peers[i].replay_buffer.pos for i in range(len(self.peer_group.peers))])
@@ -144,8 +145,21 @@ class PeerEvalCallback(EvalCallback):
 
     @staticmethod
     def track_followed_agent():
+        if PeerEvalCallback.last_logged_matrix is None:
+            diff = PeerEvalCallback.follow_matrix
+        else:
+            diff = PeerEvalCallback.follow_matrix -\
+                   PeerEvalCallback.last_logged_matrix
+
         for (peer, followed_peer), count in \
                 np.ndenumerate(PeerEvalCallback.follow_matrix):
             wandb.log({'Peer{}_0/eval/follow_count{}'.format(peer,
                                                              followed_peer):
                        count},  commit=False)
+            # also log difference
+            wandb.log({'Peer{}_0/eval/'
+                       'follow_count_{}diff'.format(peer, followed_peer):
+                           diff[peer, followed_peer]},
+                      commit=False)
+        PeerEvalCallback.last_logged_matrix = \
+            np.copy(PeerEvalCallback.follow_matrix)
