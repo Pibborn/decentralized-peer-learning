@@ -77,7 +77,9 @@ class PeerEvalCallback(EvalCallback):
             samples = []
             for i, peer in enumerate(self.peer_group.peers):
                 num_sampled_states = states//len(self.peer_group.peers)
-                sample = peer.replay_buffer.sample(num_sampled_states).observations
+                sample = peer.replay_buffer.sample(
+                    num_sampled_states
+                ).observations
                 samples.append(sample)
             samples = torch.cat(samples, dim=0)
             actions = []
@@ -88,7 +90,7 @@ class PeerEvalCallback(EvalCallback):
                 self.track_agent_values()
             if 'trust_values' in self.peer_group.peers[0].__dict__:
                 self.track_trust_values()
-            PeerEvalCallback.track_followed_agent()
+            PeerEvalCallback.track_followed_agent(self.peer_group.active_peer)
             self.track_diversity(actions)
         return True
 
@@ -130,12 +132,11 @@ class PeerEvalCallback(EvalCallback):
         return True
 
     def track_trust_values(self):
-        n_agents = len(self.peer_group.peers)
-        for i in range(n_agents):
-            trust_i = self.peer_group.peers[i].trust_values
-            for j, el in np.ndenumerate(trust_i):
-                wandb.log({'Peer{}_0/eval/trust_{}'.format(i, j[0]): el},
-                          commit=False)
+        peer = self.peer_group.active_peer
+        trust_i = self.peer_group.peers[peer].trust_values
+        for j, el in np.ndenumerate(trust_i):
+            wandb.log({'Peer{}_0/eval/trust_{}'.format(peer, j[0]): el},
+                      commit=False)
         return True
 
     def accumulate_followed_peers(self):
@@ -144,22 +145,20 @@ class PeerEvalCallback(EvalCallback):
         PeerEvalCallback.follow_matrix[peer, followed_peer] += 1
 
     @staticmethod
-    def track_followed_agent():
+    def track_followed_agent(active_peer):
         if PeerEvalCallback.last_logged_matrix is None:
             diff = PeerEvalCallback.follow_matrix
         else:
             diff = PeerEvalCallback.follow_matrix -\
                    PeerEvalCallback.last_logged_matrix
 
-        for (peer, followed_peer), count in \
-                np.ndenumerate(PeerEvalCallback.follow_matrix):
-            wandb.log({'Peer{}_0/eval/follow_count{}'.format(peer,
-                                                             followed_peer):
-                       count},  commit=False)
+        for (followed_peer,), count in np.ndenumerate(
+                PeerEvalCallback.follow_matrix[active_peer]):
+            wandb.log({'Peer{}_0/eval/follow_count{}'.format(
+                active_peer, followed_peer): count},  commit=False)
             # also log difference
-            wandb.log({'Peer{}_0/eval/'
-                       'follow_count_{}diff'.format(peer, followed_peer):
-                           diff[peer, followed_peer]},
+            wandb.log({'Peer{}_0/eval/follow_count_{}diff'.format(
+                active_peer, followed_peer): diff[active_peer, followed_peer]},
                       commit=False)
         PeerEvalCallback.last_logged_matrix = \
             np.copy(PeerEvalCallback.follow_matrix)
