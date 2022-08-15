@@ -24,6 +24,7 @@ class PeerGroup:
         self.lr = lr
         self.switch_ratio = switch_ratio
         self.active_peer = None  # index of currently learning peer
+        self.solo_epoch = False
 
         if use_agent_values:
             self.agent_values = np.full(len(peers), init_agent_values,
@@ -77,13 +78,13 @@ class PeerGroup:
 
         for i in range(n_epochs):
             # ratio of 0 never performs a solo episode
-            solo_epoch = i % (1 + self.switch_ratio) == 1
+            self.solo_epoch = i % (1 + self.switch_ratio) == 1
             if boost_single:
-                solo_epoch = not solo_epoch
+                self.solo_epoch = not self.solo_epoch
 
             for p, peer, callback in zip(it.count(), self.peers, callbacks):
                 self.active_peer = p
-                peer.learn(solo_epoch, total_timesteps=max_epoch_len,
+                peer.learn(self.solo_epoch, total_timesteps=max_epoch_len,
                            callback=callback, tb_log_name=f"Peer{p}",
                            reset_num_timesteps=False,
                            log_interval=None, **kwargs)
@@ -270,9 +271,10 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             values. """
             super(Peer, self)._on_step()  # noqa
 
-            # update values, e.g., trust and agent values after ever step
-            for key in self.peer_value_functions.keys():
-                self.peer_value_functions[key]()
+            if not self.group.solo_epoch:
+                # update values, e.g., trust and agent values after ever step
+                for key in self.peer_value_functions.keys():
+                    self.peer_value_functions[key]()
 
         def _store_transition(self, replay_buffer, buffer_action, new_obs,
                               reward, dones, infos):
@@ -281,8 +283,10 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                                                 buffer_action, new_obs,
                                                 reward, dones, infos)
 
-            # store transition in suggestion buffer as well
-            self.buffer.add(reward, buffer_action, self.followed_peer, new_obs)
+            if not self.group.solo_epoch:
+                # store transition in suggestion buffer as well
+                self.buffer.add(reward, buffer_action, self.followed_peer,
+                                new_obs)
 
         def _predict_train(self, observation, state=None,
                            episode_start=None, deterministic=False):
@@ -301,6 +305,8 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             # use peer suggestions only when wanted
             if not (self.solo_training or solo_episode):
                 self.predict = self._predict_train
+            else:
+                self.followed_peer = np.where(self.group.peers == self)
 
             result = super(Peer, self).learn(**kwargs)
 
