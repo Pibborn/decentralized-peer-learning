@@ -70,6 +70,8 @@ def add_args():
     peer_learning.add_argument("--trust-lr", type=float, default=0.001)
     peer_learning.add_argument("--T", type=float, default=1)
     peer_learning.add_argument("--T-decay", type=float, default=0)
+    peer_learning.add_argument("--init-trust-values", type=float, default=200)
+    peer_learning.add_argument("--init-agent-values", type=float, default=200)
 
     return parser
 
@@ -132,7 +134,8 @@ if __name__ == '__main__':
                          use_trust_buffer=args.use_trust_buffer,
                          solo_training=not args.peer_learning,
                          peers_sample_with_noise=args.peers_sample_with_noise,
-                         sample_random_actions=args.sample_random_actions))
+                         sample_random_actions=args.sample_random_actions,
+                         init_trust_values=args.init_trust_values))
 
     # create Peer classes
     SACPeer = make_peer_class(SAC)
@@ -164,7 +167,8 @@ if __name__ == '__main__':
         eval_envs.append(eval_env)
 
     peer_group = PeerGroup(peers, use_agent_values=args.use_agent_value,
-                           lr=args.trust_lr, switch_ratio=args.switch_ratio)
+                           lr=args.trust_lr, switch_ratio=args.switch_ratio,
+                           init_agent_values=args.init_agent_values)
 
     # create callbacks
     for i in range(args.agent_count):
