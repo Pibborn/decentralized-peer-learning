@@ -14,17 +14,19 @@ from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 class PeerGroup:
     """ A group of peers who train together. """
     def __init__(self, peers, use_agent_values=False, init_agent_values=200.,
-                 lr=0.95, switch_ratio=0):
+                 lr=0.95, switch_ratio=0, use_advantage=False):
         """
         :param peers: An iterable of peer agents
         :param lr: The learning rate for trust and agent values
         :param switch_ratio: switch_ratio == 0 means no switching
+        :param use_advantage: use advantage instead of value for AV updates
         """
         self.peers = peers
         self.lr = lr
         self.switch_ratio = switch_ratio
         self.active_peer = None  # index of currently learning peer
         self.solo_epoch = False
+        self.use_advantage = use_advantage
 
         if use_agent_values:
             self.agent_values = np.full(len(peers), init_agent_values,
@@ -39,8 +41,6 @@ class PeerGroup:
             if use_agent_values:
                 peer.peer_values[key] = self.agent_values  # noqa
                 peer.peer_value_functions[key] = self._update_agent_values
-                # when using agent values, don't act greedily
-                peer.sample_actions = True
 
     def _update_agent_values(self, batch_size=10):
         """ Updates the agent values with samples from the peers' buffers"""
@@ -49,6 +49,7 @@ class PeerGroup:
 
         for peer in self.peers:
             bs = batch_size // len(self.peers)
+            # reward, action, peer, new_obs, old_obs
             batch = peer.buffer.sample(bs)
             if batch is None:  # buffer not sufficiently full
                 return
@@ -56,8 +57,15 @@ class PeerGroup:
             obs = np.array([b[3] for b in batch]).reshape(bs, -1)
             v = peer.value(obs)
 
+            if self.use_advantage:
+                # previous observations
+                prev_obs = np.array([b[4] for b in batch]).reshape(bs, -1)
+                prev_v = peer.value(prev_obs)
+            else:
+                prev_v = np.zeros_like(v)
+
             for i in range(len(batch)):
-                target = batch[i][0] + peer.gamma * v[i]
+                target = (batch[i][0] + peer.gamma * v[i]) - prev_v[i]
                 counts[batch[i][2]] += 1
                 targets[batch[i][2]] += target
 
@@ -111,7 +119,8 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                      buffer_size=1000, follow_steps=10, seed=None,
                      use_trust_buffer=True, solo_training=False,
                      peers_sample_with_noise=False,
-                     sample_random_actions=False):
+                     sample_random_actions=False,
+                     sample_from_suggestions=True, epsilon=0.0):
             super(Peer, self).__init__(**algo_args, env=make_env(env),
                                        seed=seed)
             # create noise matrix on the correct device
@@ -130,13 +139,16 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             self.__n_peers = None
             self.group = None
             self.epoch = 0
-            self.sample_random_actions = sample_random_actions
+
+            if sample_random_actions:
+                epsilon = 1.0
 
             if not solo_training:
                 # all peers suggest without noise
                 self.peers_sample_with_noise = peers_sample_with_noise
                 # actions are sampled instead of taken greedily
-                self.sample_actions = use_critic or use_trust
+                self.sample_actions = sample_from_suggestions
+                self.epsilon = epsilon
                 self.use_critic = use_critic
 
                 if use_trust:
@@ -213,17 +225,18 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             for key in self.peer_values.keys():
                 values += self.__normalize(self.peer_values[key])
 
-            if self.sample_random_actions:
-                self.followed_peer = np.random.choice(self.n_peers)
-            elif self.sample_actions:
+            if self.sample_actions:
                 # sample action from probability
                 temp = self.temperature * np.exp(-self.temp_decay * self.epoch)
                 p = np.exp(values / temp)
                 p /= np.sum(p)
                 self.followed_peer = np.random.choice(self.n_peers, p=p)
             else:
-                # act greedily
-                self.followed_peer = np.argmax(values)
+                # act (epsilon) greedily
+                if np.random.random(1) >= self.epsilon:
+                    self.followed_peer = np.argmax(values)
+                else:
+                    self.followed_peer = np.random.choice(self.n_peers)
 
             action = actions[self.followed_peer].reshape(1, -1)
 
@@ -249,13 +262,22 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             if batch is None:  # buffer not sufficiently full
                 return
 
+            # next observations
             obs = np.array([b[3] for b in batch]).reshape(batch_size, -1)
             v = self.value(obs)
+
+            if self.group.use_advantage:
+                # previous observations
+                prev_obs = np.array([b[4] for b in batch]).reshape(batch_size,
+                                                                   -1)
+                prev_v = self.value(prev_obs)
+            else:
+                prev_v = np.zeros_like(v)
 
             targets = np.zeros(self.n_peers)
             counts = np.zeros(self.n_peers)
             for i in range(batch_size):
-                target = batch[i][0] + self.gamma * v[i]
+                target = (batch[i][0] + self.gamma * v[i]) - prev_v[i]
                 counts[batch[i][2]] += 1
                 targets[batch[i][2]] += target
 
@@ -279,6 +301,10 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
         def _store_transition(self, replay_buffer, buffer_action, new_obs,
                               reward, dones, infos):
             """ Adds suggestion buffer handling. """
+
+            # get previous observations
+            old_obs = self._last_obs
+
             super(Peer, self)._store_transition(replay_buffer,  # noqa
                                                 buffer_action, new_obs,
                                                 reward, dones, infos)
@@ -286,7 +312,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             if not self.group.solo_epoch:
                 # store transition in suggestion buffer as well
                 self.buffer.add(reward, buffer_action, self.followed_peer,
-                                new_obs)
+                                new_obs, old_obs)
 
         def _predict_train(self, observation, state=None,
                            episode_start=None, deterministic=False):

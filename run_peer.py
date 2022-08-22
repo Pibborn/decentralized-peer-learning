@@ -72,6 +72,11 @@ def add_args():
     peer_learning.add_argument("--T-decay", type=float, default=0)
     peer_learning.add_argument("--init-trust-values", type=float, default=200)
     peer_learning.add_argument("--init-agent-values", type=float, default=200)
+    peer_learning.add_argument("--use-advantage", type=str2bool, nargs="?",
+                               const=False, default=False)
+    peer_learning.add_argument("--sample-from-suggestions", type=str2bool,
+                               nargs="?", const=False, default=False)
+    peer_learning.add_argument("--epsilon", type=float, default=0.0)
 
     return parser
 
@@ -135,7 +140,9 @@ if __name__ == '__main__':
                          solo_training=not args.peer_learning,
                          peers_sample_with_noise=args.peers_sample_with_noise,
                          sample_random_actions=args.sample_random_actions,
-                         init_trust_values=args.init_trust_values))
+                         init_trust_values=args.init_trust_values,
+                         sample_from_suggestions=args.sample_from_suggestions,
+                         epsilon=args.epsilon))
 
     # create Peer classes
     SACPeer = make_peer_class(SAC)
@@ -168,7 +175,8 @@ if __name__ == '__main__':
 
     peer_group = PeerGroup(peers, use_agent_values=args.use_agent_value,
                            lr=args.trust_lr, switch_ratio=args.switch_ratio,
-                           init_agent_values=args.init_agent_values)
+                           init_agent_values=args.init_agent_values,
+                           use_advantage=args.use_advantage)
 
     # create callbacks
     for i in range(args.agent_count):
