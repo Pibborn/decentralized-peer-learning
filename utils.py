@@ -84,6 +84,8 @@ def add_default_values_to_parser(parser):
                               default=[400, 300])
     agent_parser.add_argument("--load_paths", type=str, nargs='*',
                               default=["delete_me/2022-08-31_15.49.55__0/trained_model.zip"])
+    agent_parser.add_argument("--agents_to_store", type=int, nargs='*',
+                              default=[])
 
     return parser
 

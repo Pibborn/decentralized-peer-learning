@@ -8,7 +8,7 @@ import pybullet_envs  # noqa
 from pathlib import Path
 
 from stable_baselines3 import SAC, TD3
-from stable_baselines3.common.utils import set_random_seed
+from stable_baselines3.common.utils import set_random_seed, update_learning_rate
 
 import wandb
 from wandb.integration.sb3 import WandbCallback
@@ -158,18 +158,10 @@ if __name__ == '__main__':
             args_for_agent["algo_args"].pop("ent_coef")
             args_for_agent["algo_args"].pop("use_sde")
             args_for_agent["algo_args"]["policy_kwargs"].pop("log_std_init")
-            if 6 < len(args.load_paths):
-                load_path = Path.cwd().joinpath("Experiments", args.load_paths[i])
-                peer = TD3Peer.load(load_path, env=make_env(args.env))
-            else:
-                peer = TD3Peer(**args_for_agent, seed=new_random_seed())
+            peer = TD3Peer(**args_for_agent, seed=new_random_seed())
 
         elif CA.argument_for_every_agent(args.mix_agents, i) in 'SAC':
-            if 6 < len(args.load_paths):
-                load_path = Path.cwd().joinpath("Experiments", args.load_paths[i])
-                peer = SACPeer.load(load_path, env=make_env(args.env))
-            else:
-                peer = SACPeer(**args_for_agent, seed=new_random_seed())
+            peer = SACPeer(**args_for_agent, seed=new_random_seed())
         else:
             raise NotImplementedError(
                 f"The Agent{CA.argument_for_every_agent(args.mix_agents ,i)} "
@@ -204,6 +196,20 @@ if __name__ == '__main__':
                             gym.spec(args.env).max_episode_steps)
 
     n_epochs = args.steps // max_episode_steps
+    # load pretrained model
+    for i, path in enumerate(args.load_paths):
+        load_path = Path.cwd().joinpath("Experiments", path)
+        peer = peer_group.peers[i].set_parameters(load_path_or_dict=load_path)
+        peers[i].learning_rate = 0
+        peers[i].lr_schedule = lambda _: 0.0
+        update_learning_rate(peers[i].ent_coef_optimizer, 0)
+    with open( experiment_folder / 'w_0_pre_training.txt', 'w')as f:
+        for line in list(peers[0].actor.parameters()):
+            f.write(str(line))
+    with open( experiment_folder / 'w_1_pre_training.txt', 'w')as f:
+        for line in list(peers[1].actor.parameters()):
+            f.write(str(line))
+
 
     # train the peer group
     peer_group.learn(n_epochs, callbacks=callbacks,
@@ -211,5 +217,13 @@ if __name__ == '__main__':
                      max_epoch_len=max_episode_steps)
 
     log_reward_avg_in_wandb(callbacks)
+    with open( experiment_folder / 'w_0_post_training.txt', 'w')as f:
+        for line in list(peers[0].actor.parameters()):
+            f.write(str(line))
+    with open( experiment_folder / 'w_1_post_training.txt', 'w')as f:
+        for line in list(peers[1].actor.parameters()):
+            f.write(str(line))
 
-    peers[0].save(path=experiment_folder/'trained_model')
+    for i in args.agents_to_store:
+        peers[i].save(path=experiment_folder/'trained_model_{i}')
+
