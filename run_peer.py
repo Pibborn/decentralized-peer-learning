@@ -203,12 +203,6 @@ if __name__ == '__main__':
         peers[i].learning_rate = 0
         peers[i].lr_schedule = lambda _: 0.0
         update_learning_rate(peers[i].ent_coef_optimizer, 0)
-    with open( experiment_folder / 'w_0_pre_training.txt', 'w')as f:
-        for line in list(peers[0].actor.parameters()):
-            f.write(str(line))
-    with open( experiment_folder / 'w_1_pre_training.txt', 'w')as f:
-        for line in list(peers[1].actor.parameters()):
-            f.write(str(line))
 
 
     # train the peer group
@@ -217,12 +211,6 @@ if __name__ == '__main__':
                      max_epoch_len=max_episode_steps)
 
     log_reward_avg_in_wandb(callbacks)
-    with open( experiment_folder / 'w_0_post_training.txt', 'w')as f:
-        for line in list(peers[0].actor.parameters()):
-            f.write(str(line))
-    with open( experiment_folder / 'w_1_post_training.txt', 'w')as f:
-        for line in list(peers[1].actor.parameters()):
-            f.write(str(line))
 
     for i in args.agents_to_store:
         peers[i].save(path=experiment_folder/'trained_model_{i}')
