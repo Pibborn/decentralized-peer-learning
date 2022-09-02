@@ -82,6 +82,8 @@ def add_default_values_to_parser(parser):
 
     agent_parser.add_argument("--net-arch", type=int, nargs='*',
                               default=[400, 300])
+    agent_parser.add_argument("--load_paths", type=str, nargs='*',
+                              default=["delete_me/2022-08-31_15.49.55__0/trained_model.zip"])
 
     return parser
 

@@ -158,14 +158,24 @@ if __name__ == '__main__':
             args_for_agent["algo_args"].pop("ent_coef")
             args_for_agent["algo_args"].pop("use_sde")
             args_for_agent["algo_args"]["policy_kwargs"].pop("log_std_init")
-            peers.append(TD3Peer(**args_for_agent, seed=new_random_seed()))
+            if 6 < len(args.load_paths):
+                load_path = Path.cwd().joinpath("Experiments", args.load_paths[i])
+                peer = TD3Peer.load(load_path, env=make_env(args.env))
+            else:
+                peer = TD3Peer(**args_for_agent, seed=new_random_seed())
+
         elif CA.argument_for_every_agent(args.mix_agents, i) in 'SAC':
-            peers.append(SACPeer(**args_for_agent, seed=new_random_seed()))
+            if 6 < len(args.load_paths):
+                load_path = Path.cwd().joinpath("Experiments", args.load_paths[i])
+                peer = SACPeer.load(load_path, env=make_env(args.env))
+            else:
+                peer = SACPeer(**args_for_agent, seed=new_random_seed())
         else:
             raise NotImplementedError(
                 f"The Agent{CA.argument_for_every_agent(args.mix_agents ,i)} "
                 f"is not implemented"
             )
+        peers.append(peer)
 
         eval_env = make_env(args.env, args.n_eval_episodes)
         # every agent gets its own callbacks
@@ -201,3 +211,5 @@ if __name__ == '__main__':
                      max_epoch_len=max_episode_steps)
 
     log_reward_avg_in_wandb(callbacks)
+
+    peers[0].save(path=experiment_folder/'trained_model')
