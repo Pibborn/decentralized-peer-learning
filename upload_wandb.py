@@ -6,18 +6,14 @@ import json
 
 def run():
     directory = [
-        # 'run_peer_4_agent_individual_learning_rate_sr_5_HalfCheetahBulletEnv-v0',
-        # 'run_peer_4_agent_individual_learning_rate_sr_3_HalfCheetahBulletEnv-v0',
-        # 'run_peer_1_agent_net_250_200_HalfCheetahBulletEnv-v0.sh',
-        # 'run_peer_1_agent_net_125_100_HalfCheetahBulletEnv-v0.sh',
-        # 'run_peer_1_agent_net_500_400_HalfCheetahBulletEnv-v0.sh',
-        # 'run_peer_1_agent_net_25_25_HalfCheetahBulletEnv-v0.sh',
-        'run_peer_1_agent_net_350_300_HalfCheetahBulletEnv-v0.sh'
-        # 'run_peer_4_agent_net_500_400_HalfCheetahBulletEnv-v0.sh',
-        # 'run_peer_4_agent_net_25_25_HalfCheetahBulletEnv-v0.sh',
-        # 'run_peer_4_agent_net_350_300_HalfCheetahBulletEnv-v0.sh',
-        # 'run_peer_4_agent_net_250_200_HalfCheetahBulletEnv-v0.sh',
-        # 'run_peer_4_agent_net_125_100_HalfCheetahBulletEnv-v0.sh',
+        "peer_4_HalfCheetahBulletEnv-v0_200_300_normal_learning_rate_adv_True_sample_sug_True_eps_0.2_T_0.5",
+        "peer_4_HalfCheetahBulletEnv-v0_200_300_normal_learning_rate_adv_True_sample_sug_True_eps_0.2_T_1",
+        "peer_4_HalfCheetahBulletEnv-v0_200_300_normal_learning_rate_adv_True_sample_sug_True_eps_0.2_T_2",
+        "peer_4_HalfCheetahBulletEnv-v0_200_300_normal_learning_rate_adv_True_sample_sug_False_eps_0.2_T_1",
+        "peer_4_HalfCheetahBulletEnv-v0_200_300_normal_learning_rate_adv_False_sample_sug_True_eps_0.2_T_0.5",
+        "peer_4_HalfCheetahBulletEnv-v0_200_300_normal_learning_rate_adv_False_sample_sug_True_eps_0.2_T_1",
+        "peer_4_HalfCheetahBulletEnv-v0_200_300_normal_learning_rate_adv_False_sample_sug_True_eps_0.2_T_2",
+        "peer_4_HalfCheetahBulletEnv-v0_200_300_normal_learning_rate_adv_False_sample_sug_False_eps_0.2_T_1"
     ]
     wandb_entity_name = 'jgu-wandb'
     wandb_project = 'peer-learning'
@@ -39,6 +35,8 @@ def upload_experiment(Path_to_experiments, setup, upload_identifier, wandb_entit
             path_to_run_to_upload = path_to_runs / run / 'wandb'
             id = f"{setup}__{run}{upload_identifier}"
             path_to_run_to_upload = get_path_to_wandb_file(path_to_run_to_upload)
+            if len(id) >= 120:
+                 id = id.replace('learning_rate', 'lr')
             command = f"wandb sync -e {wandb_entity_name} " \
                       f"-p {wandb_project}" \
                       f" --id {id}" \
