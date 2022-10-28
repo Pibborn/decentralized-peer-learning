@@ -1,6 +1,7 @@
 import argparse
 import wandb
 import gym
+import json
 
 import numpy as np
 
@@ -8,11 +9,11 @@ from stable_baselines3.common.env_util import DummyVecEnv
 from stable_baselines3.common.monitor import Monitor
 
 
-def make_env(env_str, n_envs=1):
+def make_env(env_str, n_envs=1, **env_args):
     envs = []
     for _ in range(n_envs):
         def env_func():
-            env = Monitor(gym.make(env_str))
+            env = Monitor(gym.make(env_str, **env_args))
             env.seed(new_random_seed())
             return env
 
@@ -39,6 +40,18 @@ def str2func(v):
     function = eval(v)
     return function
 
+
+class StoreDictKeyPair(argparse.Action):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        self._nargs = nargs
+        super(StoreDictKeyPair, self).__init__(option_strings, dest, nargs=nargs, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        my_dict = {}
+        for kv in values:
+            k, v = kv.split("=")
+            my_dict[k] = json.loads(v.lower())
+        setattr(namespace, self.dest, my_dict)
 
 class Controller_Arguments():
     def __init__(self, number_agents):
@@ -71,10 +84,13 @@ def add_default_values_to_parser(parser):
                              "'auto'.")
     parser.add_argument("--env", type=str, default="HalfCheetahBulletEnv-v0",
                         help="OpenAI Gym environment to perform algorithm on.")
+    parser.add_argument("--env_args", action=StoreDictKeyPair,
+                        nargs='*', metavar="KEY=VAL")
     parser.add_argument("--seed", type=int, default=1,
                         help="Random seed in [0, 2 ** 32)")
     parser.add_argument("--wandb", type=str, default='offline',
                         choices=["online", "offline", "disabled"])
+
     # Agents
     agent_parser = parser.add_argument_group("Agent")
     agent_parser.add_argument("--mix-agents", type=str, nargs='*',
@@ -86,6 +102,7 @@ def add_default_values_to_parser(parser):
                               default=[])
     agent_parser.add_argument("--agents_to_store", type=int, nargs='*',
                               default=[])
+    agent_parser
 
     return parser
 

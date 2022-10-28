@@ -31,7 +31,7 @@ def run():
                 'HopperPyBulletEnv-v0': ""
                 }
 
-    number_agent = [4]
+    number_agent = [4, 1]
     runnning_time = {
         'HalfCheetah-v4': '72:00:00',
         'Walker2d-v4': '72:00:00',
@@ -45,8 +45,7 @@ def run():
         'HopperPyBulletEnv-v0': '24:00:00'
     }
     scripts = {
-        'peer': 'run_peer.py'
-        # 'full_info': 'run_fullinfo.py'
+        'full_info': 'run_fullinfo.py'
     }
     learning_rate = {
         'HalfCheetah-v4': "\"lambda x: 7.3e-4\"",
@@ -62,7 +61,6 @@ def run():
         'HopperPyBulletEnv-v0': "\"lambda x: 3e-4\""
     }
     # learning_rate = {'7.3e-4': 7.3e-4}
-    switch_ratio = 0
     mix_agents = ["\"SAC\""]  # ["\"SAC SAC SAC SAC\""]# "\"SAC SAC TD3 TD3\"", "\"TD3 TD3 TD3 TD3\""]
     net_archs = ["\"200 300\""]  # ["\"25 25\""]  # , "\"150 200\"", "\"200 300\"", "\"350 300\""]
     n_timesteps = {
@@ -118,10 +116,9 @@ def run():
         'ReacherBulletEnv-v0': 0.99,
         'HopperPyBulletEnv-v0': 0.99
     }
-    T_decay_list = [0]
+
     epsilion_list = [0.2]
     temperature_list = [1]
-    use_advantage_list = [True, False]
     sample_from_suggestions_list = [True]
     experiment_list = []
     follow_steps_list = [10]
@@ -134,48 +131,27 @@ def run():
             for a_num in number_agent:
                 for mix in mix_agents:
                     for net_arch in net_archs:
-                        for follow_steps in follow_steps_list:
-                            for epsilon in epsilion_list:
-                                for use_advantage in use_advantage_list:
-                                    for sample_from_suggestions in sample_from_suggestions_list:
-                                        for T_decay in T_decay_list:
-                                            if sample_from_suggestions == True:
-                                                for temperature in temperature_list:
-                                                    experiment_name = create_script(agent_type, env, learning_rate,
-                                                                                    mix, a_num, runnning_time,
-                                                                                    scripts, switch_ratio, net_arch,
-                                                                                    script_folder, n_timesteps,
-                                                                                    buffer_size, follow_steps,
-                                                                                    use_advantage, epsilon,
-                                                                                    temperature,
-                                                                                    sample_from_suggestions,
-                                                                                    output_folder, T_decay,
-                                                                                    env_args, buffer_start_size,
-                                                                                    gamma)
-                                                    experiment_list.append(experiment_name)
-                                            else:
-                                                temperature = 0
+                        for epsilon in epsilion_list:
+                            for sample_from_suggestions in sample_from_suggestions_list:
 
-                                                experiment_name = create_script(agent_type, env, learning_rate, mix,
-                                                                                a_num, runnning_time, scripts,
-                                                                                switch_ratio, net_arch,
-                                                                                script_folder, n_timesteps,
-                                                                                buffer_size, follow_steps,
-                                                                                use_advantage, epsilon, temperature,
-                                                                                sample_from_suggestions,
-                                                                                output_folder, T_decay, env_args,
-                                                                                buffer_start_size, gamma)
-                                                experiment_list.append(experiment_name)
+                                    for temperature in temperature_list:
+                                        experiment_name = create_script(agent_type, env, learning_rate, mix, a_num,
+                                                                        runnning_time, scripts, net_arch, script_folder,
+                                                                        n_timesteps, buffer_size, temperature,
+                                                                        output_folder, env_args,
+                                                                        buffer_start_size, gamma)
+                                        experiment_list.append(experiment_name)
+
 
     write_experiment_names_to_file(experiment_list, script_folder)
     write_sbatch_comments_to_file(experiment_list, script_folder)
 
 
-def create_script(agent_type, enviroments, learning_rate, mix_agents, number_agent, runnning_time, scripts,
-                  switch_ratio, net_arch, script_folder, n_timesteps, buffer_size, follow_steps, use_advantage, epsilon,
-                  temperature, sample_from_suggestions, output_folder, T_decay, env_args, buffer_start_size, gamma):
+def create_script(agent_type, enviroments, learning_rate, mix_agents, number_agent, runnning_time, scripts, net_arch,
+                  script_folder, n_timesteps, buffer_size, temperature, output_folder,  env_args,
+                  buffer_start_size, gamma):
     experiment_name = f'{agent_type}_{number_agent}_{enviroments}_{net_arch}' \
-                      f'_adv_{use_advantage}_T_{temperature}'
+                      f'_T_{temperature}'
 
     # f'_{mix_agents}_{learning_rate_key}' \f'_sr_{switch_ratio}_fs_{follow_steps}' \
 
@@ -190,14 +166,12 @@ def create_script(agent_type, enviroments, learning_rate, mix_agents, number_age
         write_SBATCH_commants(enviroments, experiment_name, file1, runnning_time, output_folder)
         write_prepare_enviroment(file1)
 
-        write_python_default_parameter(agent_type, enviroments, file1, learning_rate, net_arch, number_agent, scripts,
-                                       n_timesteps, buffer_size, follow_steps, T_decay, env_args, buffer_start_size,
-                                       gamma)
-        if agent_type == 'peer':
-            add_peer_arguments(file1, switch_ratio, mix_agents, use_advantage, epsilon, temperature,
-                               sample_from_suggestions)
-        elif agent_type == 'full_info':
-            add_full_info_arguments(file1, mix_agents)
+        write_python_default_parameter(agent_type=agent_type, enviroments=enviroments, file1=file1,
+                                       learning_rate=learning_rate, net_arch=net_arch, number_agent=number_agent,
+                                       scripts=scripts, n_timesteps=n_timesteps, buffer_size=buffer_size,
+                                       env_args=env_args, buffer_start_size=buffer_start_size, gamma=gamma)
+
+        add_full_info_arguments(file1, mix_agents)
 
     return experiment_name
 
@@ -234,7 +208,7 @@ def write_SBATCH_commants(enviroments, experiment_name, file1, runnning_time, ou
 
 
 def write_python_default_parameter(agent_type, enviroments, file1, learning_rate, net_arch, number_agent, scripts,
-                                   n_timesteps, buffer_size, follow_steps, T_decay, env_args, buffer_start_size, gamma):
+                                   n_timesteps, buffer_size, env_args, buffer_start_size, gamma):
     file1.writelines(f"srun python {scripts[agent_type]} \\\n")
     file1.writelines(f"  --save-name $SLURM_JOB_NAME \\\n")
     file1.writelines(f"  --job_id $SLURM_JOB_ID \\\n")
@@ -251,20 +225,8 @@ def write_python_default_parameter(agent_type, enviroments, file1, learning_rate
     file1.writelines(f"  --train_freq 8 \\\n")
     file1.writelines(f"  --seed $SLURM_JOB_ID \\\n")
     file1.writelines(f"  --net-arch {net_arch} \\\n")
-    file1.writelines(f"  --follow-steps {follow_steps} \\\n")
     file1.writelines(f"  --learning_rate {learning_rate[enviroments]} \\\n")
-    file1.writelines(f"  --agents_to_store {'0 1 2 3' if number_agent == 4 else '0'}  \\\n")
-    file1.writelines(f"  --T-decay {T_decay}  \\\n")
 
-
-def add_peer_arguments(file1, switch_ratio, mix_agents, use_advantage, epsilon, temperature, sample_from_suggestions):
-    file1.writelines(f"  --mix-agents {mix_agents}  \\\n")
-    file1.writelines(f"  --switch-ratio {switch_ratio} \\\n")
-    file1.writelines(f"  --use-advantage {use_advantage} \\\n")
-    file1.writelines(f"  --epsilon {epsilon} \\\n")
-    file1.writelines(f"  --T {temperature} \\\n")
-    file1.writelines(f"--sample-from-suggestions {sample_from_suggestions} \\\n")
-    file1.writelines(f"--use-critic True --use-agent-value True --use-trust True --peers-sample-with-noise False \n")
 
 
 def add_full_info_arguments(file1, mix_agents):
@@ -274,13 +236,13 @@ def add_full_info_arguments(file1, mix_agents):
 
 
 def write_experiment_names_to_file(experiment_list, script_folder):
-    with open(f"{script_folder}/experiment_name.txt", "w") as file2:
+    with open(f"{script_folder}/experiment_name_fullinfo.txt", "w") as file2:
         for experiment_name in experiment_list:
             file2.write(f"\"{experiment_name}\",\n")
 
 
 def write_sbatch_comments_to_file(experiment_list, script_folder):
-    with open(f"{script_folder}/sbatch_comments.txt", "w") as file2:
+    with open(f"{script_folder}/sbatch_comments_fullinfo.txt", "w") as file2:
         for experiment_name in experiment_list:
             file2.write(f"sbatch {experiment_name}.sh \n")
 

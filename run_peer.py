@@ -68,8 +68,8 @@ def add_args():
     peer_learning.add_argument("--sample_random_actions", type=str2bool,
                                nargs="?", const=True, default=False)
     peer_learning.add_argument("--trust-lr", type=float, default=0.001)
-    peer_learning.add_argument("--T", type=float, default=1)
-    peer_learning.add_argument("--T-decay", type=float, default=0)
+    peer_learning.add_argument("--T", type=float, nargs='*', default=[1])
+    peer_learning.add_argument("--T-decay", type=float, nargs='*', default=[0])
     peer_learning.add_argument("--init-trust-values", type=float, default=200)
     peer_learning.add_argument("--init-agent-values", type=float, default=200)
     peer_learning.add_argument("--use-advantage", type=str2bool, nargs="?",
@@ -115,34 +115,43 @@ if __name__ == '__main__':
     # initialize peer group
     algo_args = []
     for i in range(args.agent_count):
-        algo_args.append(dict(policy="MlpPolicy", verbose=1,
-                         policy_kwargs=dict(log_std_init=-3,
-                                            net_arch=args.net_arch),
-                         buffer_size=args.buffer_size,
-                         batch_size=args.batch_size,
-                         ent_coef="auto", gamma=args.gamma, tau=args.tau,
-                         train_freq=args.train_freq,
-                         gradient_steps=args.gradient_steps,
-                         learning_starts=args.buffer_start_size, use_sde=True,
-                         learning_rate=CA.argument_for_every_agent(
-                             args.learning_rate, i
-                         ),
-                         tensorboard_log=str_folder,
-                         device=args.device))
+        algo_args.append(
+            dict(
+                policy="MlpPolicy",
+                verbose=1,
+                policy_kwargs=dict(log_std_init=-3,
+                                   net_arch=args.net_arch),
+                buffer_size=args.buffer_size,
+                batch_size=args.batch_size,
+                ent_coef="auto",
+                gamma=args.gamma,
+                tau=args.tau,
+                train_freq=args.train_freq,
+                gradient_steps=args.gradient_steps,
+                learning_starts=args.buffer_start_size, use_sde=True,
+                learning_rate=CA.argument_for_every_agent(
+                    args.learning_rate, i
+                ),
+                tensorboard_log=str_folder,
+                device=args.device))
     peer_args = []
     for i in range(args.agent_count):
-        peer_args.append(dict(temperature=args.T, temp_decay=args.T_decay,
-                         algo_args=algo_args[i], env=args.env,
-                         use_trust=args.use_trust, use_critic=args.use_critic,
-                         buffer_size=args.trust_buffer_size,
-                         follow_steps=args.follow_steps,
-                         use_trust_buffer=args.use_trust_buffer,
-                         solo_training=not args.peer_learning,
-                         peers_sample_with_noise=args.peers_sample_with_noise,
-                         sample_random_actions=args.sample_random_actions,
-                         init_trust_values=args.init_trust_values,
-                         sample_from_suggestions=args.sample_from_suggestions,
-                         epsilon=args.epsilon))
+        peer_args.append(dict(temperature=CA.argument_for_every_agent(args.T, i),
+                              temp_decay=CA.argument_for_every_agent(args.T_decay, i),
+                              algo_args=algo_args[i],
+                              env=args.env,
+                              env_args=args.env_args,
+                              use_trust=args.use_trust,
+                              use_critic=args.use_critic,
+                              buffer_size=args.trust_buffer_size,
+                              follow_steps=args.follow_steps,
+                              use_trust_buffer=args.use_trust_buffer,
+                              solo_training=not args.peer_learning,
+                              peers_sample_with_noise=args.peers_sample_with_noise,
+                              sample_random_actions=args.sample_random_actions,
+                              init_trust_values=args.init_trust_values,
+                              sample_from_suggestions=args.sample_from_suggestions,
+                              epsilon=args.epsilon))
 
     # create Peer classes
     SACPeer = make_peer_class(SAC)
@@ -164,7 +173,7 @@ if __name__ == '__main__':
             peer = SACPeer(**args_for_agent, seed=new_random_seed())
         else:
             raise NotImplementedError(
-                f"The Agent{CA.argument_for_every_agent(args.mix_agents ,i)} "
+                f"The Agent{CA.argument_for_every_agent(args.mix_agents, i)} "
                 f"is not implemented"
             )
         peers.append(peer)
@@ -204,7 +213,6 @@ if __name__ == '__main__':
         peers[i].lr_schedule = lambda _: 0.0
         update_learning_rate(peers[i].ent_coef_optimizer, 0)
 
-
     # train the peer group
     peer_group.learn(n_epochs, callbacks=callbacks,
                      eval_log_path=str_folder,
@@ -213,5 +221,4 @@ if __name__ == '__main__':
     log_reward_avg_in_wandb(callbacks)
 
     for i in args.agents_to_store:
-        peers[i].save(path=experiment_folder/'trained_model_{i}')
-
+        peers[i].save(path=experiment_folder / f'trained_model_{i}')

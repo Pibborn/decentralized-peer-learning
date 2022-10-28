@@ -132,8 +132,8 @@ if __name__ == '__main__':
                            f"the {args.env[:-3]} environment.",
                      dir=str_folder, mode=args.wandb)
 
-    train_env = make_env(args.env)
-    test_env = make_env(args.env, args.n_eval_episodes)
+    train_env = make_env(args.env, **args.env_args)
+    test_env = make_env(args.env, args.n_eval_episodes, **args.env_args)
     if args.track_video:
         def record_video_trigger(x):
             return x % args.eval_interval == 0

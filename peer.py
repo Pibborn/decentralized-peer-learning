@@ -114,14 +114,11 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
     class Peer(cls, ABC):
         """ Abstract Peer class
         needs to be mixed with a suitable algorithm. """
-        def __init__(self, temperature, temp_decay, algo_args, env,
-                     use_trust=False, use_critic=False, init_trust_values=200,
-                     buffer_size=1000, follow_steps=10, seed=None,
-                     use_trust_buffer=True, solo_training=False,
-                     peers_sample_with_noise=False,
-                     sample_random_actions=False,
-                     sample_from_suggestions=True, epsilon=0.0):
-            super(Peer, self).__init__(**algo_args, env=make_env(env),
+        def __init__(self, temperature, temp_decay, algo_args, env, use_trust=False, use_critic=False,
+                     init_trust_values=200, buffer_size=1000, follow_steps=10, seed=None, use_trust_buffer=True,
+                     solo_training=False, peers_sample_with_noise=False, sample_random_actions=False,
+                     sample_from_suggestions=True, epsilon=0.0, env_args={}):
+            super(Peer, self).__init__(**algo_args, env=make_env(env, **env_args),
                                        seed=seed)
             # create noise matrix on the correct device
             if hasattr(self.actor, "reset_noise"):

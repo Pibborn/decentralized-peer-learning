@@ -6,14 +6,43 @@ import json
 
 def run():
     directory = [
-        "peer_4_HalfCheetahBulletEnv-v0_200_300_normal_learning_rate_adv_True_sample_sug_True_eps_0.2_T_0.5",
-        "peer_4_HalfCheetahBulletEnv-v0_200_300_normal_learning_rate_adv_True_sample_sug_True_eps_0.2_T_1",
-        "peer_4_HalfCheetahBulletEnv-v0_200_300_normal_learning_rate_adv_True_sample_sug_True_eps_0.2_T_2",
-        "peer_4_HalfCheetahBulletEnv-v0_200_300_normal_learning_rate_adv_True_sample_sug_False_eps_0.2_T_1",
-        "peer_4_HalfCheetahBulletEnv-v0_200_300_normal_learning_rate_adv_False_sample_sug_True_eps_0.2_T_0.5",
-        "peer_4_HalfCheetahBulletEnv-v0_200_300_normal_learning_rate_adv_False_sample_sug_True_eps_0.2_T_1",
-        "peer_4_HalfCheetahBulletEnv-v0_200_300_normal_learning_rate_adv_False_sample_sug_True_eps_0.2_T_2",
-        "peer_4_HalfCheetahBulletEnv-v0_200_300_normal_learning_rate_adv_False_sample_sug_False_eps_0.2_T_1"
+        "peer_4_HalfCheetah-v4_200_300_adv_True_T_1",
+        "peer_4_HalfCheetah-v4_200_300_adv_False_T_1",
+        "peer_1_HalfCheetah-v4_200_300_adv_True_T_1",
+        "peer_1_HalfCheetah-v4_200_300_adv_False_T_1",
+        "peer_4_Walker2d-v4_200_300_adv_True_T_1",
+        "peer_4_Walker2d-v4_200_300_adv_False_T_1",
+        "peer_1_Walker2d-v4_200_300_adv_True_T_1",
+        "peer_1_Walker2d-v4_200_300_adv_False_T_1",
+        "peer_4_Ant-v4_200_300_adv_True_T_1",
+        "peer_4_Ant-v4_200_300_adv_False_T_1",
+        "peer_1_Ant-v4_200_300_adv_True_T_1",
+        "peer_1_Ant-v4_200_300_adv_False_T_1",
+        "peer_4_Hopper-v4_200_300_adv_True_T_1",
+        "peer_4_Hopper-v4_200_300_adv_False_T_1",
+        "peer_1_Hopper-v4_200_300_adv_True_T_1",
+        "peer_1_Hopper-v4_200_300_adv_False_T_1",
+        "peer_4_Swimmer-v4_200_300_adv_True_T_1",
+        "peer_4_Swimmer-v4_200_300_adv_False_T_1",
+        "peer_1_Swimmer-v4_200_300_adv_True_T_1",
+        "peer_1_Swimmer-v4_200_300_adv_False_T_1",
+        "peer_4_InvertedDoublePendulum-v4_200_300_adv_True_T_1",
+        "peer_4_InvertedDoublePendulum-v4_200_300_adv_False_T_1",
+        "peer_1_InvertedDoublePendulum-v4_200_300_adv_True_T_1",
+        "peer_1_InvertedDoublePendulum-v4_200_300_adv_False_T_1",
+        "full_info_4_HalfCheetah-v4_200_300_T_1",
+        "full_info_1_HalfCheetah-v4_200_300_T_1",
+        "full_info_4_Walker2d-v4_200_300_T_1",
+        "full_info_1_Walker2d-v4_200_300_T_1",
+        "full_info_4_Ant-v4_200_300_T_1",
+        "full_info_1_Ant-v4_200_300_T_1",
+        "full_info_4_Hopper-v4_200_300_T_1",
+        "full_info_1_Hopper-v4_200_300_T_1",
+        "full_info_4_Swimmer-v4_200_300_T_1",
+        "full_info_1_Swimmer-v4_200_300_T_1",
+        "full_info_4_InvertedDoublePendulum-v4_200_300_T_1",
+        "full_info_1_InvertedDoublePendulum-v4_200_300_T_1",
+
     ]
     wandb_entity_name = 'jgu-wandb'
     wandb_project = 'peer-learning'
@@ -37,6 +66,7 @@ def upload_experiment(Path_to_experiments, setup, upload_identifier, wandb_entit
             path_to_run_to_upload = get_path_to_wandb_file(path_to_run_to_upload)
             if len(id) >= 120:
                  id = id.replace('learning_rate', 'lr')
+                 id = id.replace('temperature_decay', 'td')
             command = f"wandb sync -e {wandb_entity_name} " \
                       f"-p {wandb_project}" \
                       f" --id {id}" \
