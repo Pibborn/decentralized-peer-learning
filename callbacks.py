@@ -72,56 +72,12 @@ class PeerEvalCallback(EvalCallback):
             minimum_samples_in_buffer = np.min([self.peer_group.peers[i].replay_buffer.pos for i in range(len(self.peer_group.peers))])
             if self.n_samples > minimum_samples_in_buffer:
                 return True
-            replay_buffers = []
-            states = 100
-            samples = []
-            for i, peer in enumerate(self.peer_group.peers):
-                num_sampled_states = states//len(self.peer_group.peers)
-                sample = peer.replay_buffer.sample(
-                    num_sampled_states
-                ).observations
-                samples.append(sample)
-            samples = torch.cat(samples, dim=0)
-            actions = []
-            for peer in self.peer_group.peers:
-                action, _ = peer.policy.predict(samples, deterministic=True)
-                actions.append(action)
             if 'agent_values' in self.peer_group.__dict__:
                 self.track_agent_values()
             if 'trust_values' in self.peer_group.peers[0].__dict__:
                 self.track_trust_values()
             PeerEvalCallback.track_followed_agent(self.peer_group.active_peer)
-            self.track_diversity(actions)
         return True
-
-    def track_diversity(self, actions):
-        """Computes and tracks a diversity measure between agent actions.
-
-        Args:
-            actions (np.ndarray): a 3d tensor with shape
-            (n_agents, self.n_samples, env.action_size).
-        :return: A matrix of diversity values between agents based on the
-            L2 norm.
-        """
-        n_agents = len(self.peer_group.peers)
-        if n_agents == 1:
-            return 0
-        diversity_matrix = np.zeros((n_agents, n_agents))
-        for agent_1, agent_2 in combinations(range(n_agents), 2):
-            # ord=2 is implicit for vectors (fix for Windows)
-            diversity = np.linalg.norm(actions[agent_1] - actions[agent_2])
-            diversity_matrix[agent_1, agent_2] = diversity
-            diversity_matrix[agent_2, agent_1] = diversity
-            wandb.log({'Peer{}_0/eval/diversity_{}'.format(agent_1, agent_2):
-                       diversity}, commit=False)
-            wandb.log({'Peer{}_0/eval/diversity_{}'.format(agent_2, agent_1):
-                       diversity}, commit=False)
-        for peer_id in range(len(self.peer_group.peers)):
-            wandb.log({'Peer{}_0/eval/diversity_mean'.format(peer_id):
-                       np.mean(diversity_matrix[peer_id, :])},
-                      commit=False)
-        wandb.log({'average_diversity': np.mean(diversity_matrix)})
-        return diversity
 
     def track_agent_values(self):
         n_agents = len(self.peer_group.peers)
