@@ -97,7 +97,7 @@ def train_full_info(agents, env_test, log_interval, save_dir):
         wandb_callback = WandbCallback(gradient_save_freq=log_interval,
                                        model_save_path=save_dir,
                                        verbose=2)
-        callbacks.append([eval_callback, wandb_callback])
+        callbacks.append([wandb_callback, eval_callback])
 
     full_info_agents.learn(n_epochs, max_episode_steps, callbacks,
                            log_interval=None)
