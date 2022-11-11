@@ -197,7 +197,9 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             self.steps_followed %= self.follow_steps
             if 0 < followed_steps:
                 peer = self.group.peers[self.followed_peer]
-                action, _ = peer.policy.predict(obs, deterministic=True)
+                det = (peer != self and not self.peers_sample_with_noise) or \
+                    deterministic
+                action, _ = peer.policy.predict(obs, deterministic=det)
                 return action, None
 
             # get actions
