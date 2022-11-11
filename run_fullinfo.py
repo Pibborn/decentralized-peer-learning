@@ -69,7 +69,6 @@ def train_single(agent, env_test, log_interval, save_dir):
                                  eval_freq=log_interval,
                                  deterministic=True, render=False)
     wandb_callback = WandbCallback(gradient_save_freq=log_interval,
-                                   model_save_path=save_dir,
                                    verbose=2)
     agent.learn(total_timesteps=args.steps,
                 callback=[eval_callback, wandb_callback],
@@ -95,7 +94,6 @@ def train_full_info(agents, env_test, log_interval, save_dir):
                                      n_eval_episodes=args.n_eval_episodes,
                                      deterministic=True, render=False)
         wandb_callback = WandbCallback(gradient_save_freq=log_interval,
-                                       model_save_path=save_dir,
                                        verbose=2)
         callbacks.append([wandb_callback, eval_callback])
 
