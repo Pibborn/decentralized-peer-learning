@@ -114,6 +114,7 @@ if __name__ == '__main__':
 
     # initialize peer group
     algo_args = []
+    peer_args = []
     for i in range(args.agent_count):
         algo_args.append(
             dict(
@@ -134,8 +135,7 @@ if __name__ == '__main__':
                 ),
                 tensorboard_log=str_folder,
                 device=args.device))
-    peer_args = []
-    for i in range(args.agent_count):
+
         peer_args.append(dict(temperature=CA.argument_for_every_agent(args.T, i),
                               temp_decay=CA.argument_for_every_agent(args.T_decay, i),
                               algo_args=algo_args[i],
