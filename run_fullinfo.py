@@ -141,9 +141,10 @@ if __name__ == '__main__':
                                     record_video_trigger=record_video_trigger,
                                     video_length=200)
     agents = create_sac_agents(train_env, args.agent_count)
-    # setting those values already so the treads don't have to take care of it
-    # otherwise only one thread does not throw an exception
-    wandb.config.update(agents[0].__dict__, allow_val_change=True)
+    if args.multi_threading:
+        # setting those values already so the threads don't have to take
+        # care of it otherwise only one thread does not throw an exception
+        wandb.config.update(agents[0].__dict__, allow_val_change=True)
 
     if args.agent_count == 1:
         callbacks = train_single(agents[0], test_env,
