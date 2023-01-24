@@ -44,7 +44,8 @@ def str2func(v):
 class StoreDictKeyPair(argparse.Action):
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
         self._nargs = nargs
-        super(StoreDictKeyPair, self).__init__(option_strings, dest, nargs=nargs, **kwargs)
+        super(StoreDictKeyPair, self).__init__(option_strings, dest,
+                                               nargs=nargs, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
         my_dict = {}
@@ -53,24 +54,25 @@ class StoreDictKeyPair(argparse.Action):
             my_dict[k] = json.loads(v.lower())
         setattr(namespace, self.dest, my_dict)
 
-class Controller_Arguments():
+
+class ControllerArguments:
     def __init__(self, number_agents):
         self.number_agents = number_agents
 
-    def argument_for_every_agent(self, input, i):
-        if type(input) is list:
-            if len(input) == 1:
-                return input[0]
-            elif len(input) == self.number_agents:
-                return input[i]
+    def argument_for_every_agent(self, arguments, i):
+        if type(arguments) is list:
+            if len(arguments) == 1:
+                return arguments[0]
+            elif len(arguments) == self.number_agents:
+                return arguments[i]
             else:
-                raise AssertionError(f'number of arguments {len(input)} has'
-                                     f' to be 1 or == number of agents'
+                raise AssertionError(f'number of arguments {len(arguments)}'
+                                     f'has to be 1 or == number of agents'
                                      f'({self.number_agents}) input is'
-                                     f' {input}')
+                                     f' {arguments}')
         else:
-            raise AssertionError(f'input is not a list input is{input} '
-                                 f'{type(input)}')
+            raise AssertionError(f'input is not a list input is{arguments} '
+                                 f'{type(arguments)}')
 
 
 def add_default_values_to_parser(parser):
@@ -85,11 +87,13 @@ def add_default_values_to_parser(parser):
     parser.add_argument("--env", type=str, default="HalfCheetahBulletEnv-v0",
                         help="OpenAI Gym environment to perform algorithm on.")
     parser.add_argument("--env_args", action=StoreDictKeyPair,
-                        nargs='*', metavar="KEY=VAL")
+                        nargs='*', metavar="KEY=VAL", default={})
     parser.add_argument("--seed", type=int, default=1,
                         help="Random seed in [0, 2 ** 32)")
     parser.add_argument("--wandb", type=str, default='offline',
                         choices=["online", "offline", "disabled"])
+    parser.add_argument("--discrete-actions", type=str2bool, nargs="?",
+                        const=False, default=False)
 
     # Agents
     agent_parser = parser.add_argument_group("Agent")
@@ -102,7 +106,6 @@ def add_default_values_to_parser(parser):
                               default=[])
     agent_parser.add_argument("--agents_to_store", type=int, nargs='*',
                               default=[])
-    agent_parser
 
     return parser
 
@@ -146,6 +149,12 @@ def add_default_values_to_train_parser(training_parser):
                                  default=1)
     training_parser.add_argument("--train_freq", type=int,
                                  default=1)
+    training_parser.add_argument("--target_update_interval", type=int,
+                                 default=1)
+    dqn_parser = training_parser.add_argument_group("DQN")
+    dqn_parser.add_argument("--exploration-fraction", type=float, default=0.1)
+    dqn_parser.add_argument("--exploration-final-eps", type=float,
+                            default=0.05)
     return training_parser
 
 

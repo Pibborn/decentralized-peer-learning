@@ -2,12 +2,12 @@ import argparse
 import datetime
 
 import gym
-import pybulletgym  # noqa
-import pybullet_envs  # noqa
+import pybulletgym  # noqa: F401
+import pybullet_envs  # noqa: F401
 
 from pathlib import Path
 
-from stable_baselines3 import SAC
+from stable_baselines3 import SAC, DQN
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.vec_env import VecVideoRecorder
 from stable_baselines3.common.utils import set_random_seed
@@ -19,7 +19,8 @@ from fullinfo import PeerFullInfo
 from fullinfo import FullInfoMultiThreading
 
 from utils import add_default_values_to_parser, log_reward_avg_in_wandb,\
-    add_default_values_to_train_parser, new_random_seed, make_env, Controller_Arguments
+    add_default_values_to_train_parser, new_random_seed, make_env,\
+    ControllerArguments
 
 
 def add_args():
@@ -54,7 +55,31 @@ def create_sac_agents(env, num_agents):
                     train_freq=args.train_freq,
                     gradient_steps=args.gradient_steps,
                     learning_starts=args.buffer_start_size, use_sde=True,
-                    learning_rate=CA.argument_for_every_agent(args.learning_rate,i),
+                    learning_rate=CA.argument_for_every_agent(
+                        args.learning_rate, i),
+                    tensorboard_log=str_folder,
+                    seed=new_random_seed(),
+                    device=args.device)
+        agent_list.append(agent)
+    return agent_list
+
+
+def create_dqn_agents(env, num_agents):
+    agent_list = []
+    for i in range(num_agents):
+        agent = DQN(policy="MlpPolicy", env=env, verbose=1,
+                    policy_kwargs=dict(net_arch=args.net_arch),
+                    buffer_size=args.buffer_size,
+                    batch_size=args.batch_size,
+                    gamma=args.gamma, tau=args.tau,
+                    train_freq=args.train_freq,
+                    exploration_fraction=args.exploration_fraction,
+                    exploration_final_eps=args.exploration_final_eps,
+                    target_update_interval=args.target_update_interval,
+                    gradient_steps=args.gradient_steps,
+                    learning_starts=args.buffer_start_size,
+                    learning_rate=CA.argument_for_every_agent(
+                        args.learning_rate, i),
                     tensorboard_log=str_folder,
                     seed=new_random_seed(),
                     device=args.device)
@@ -107,7 +132,7 @@ if __name__ == '__main__':
     # parse args
     arg_parser = add_args()
     args = arg_parser.parse_args()
-    CA = Controller_Arguments(args.agent_count)
+    CA = ControllerArguments(args.agent_count)
 
     # create results/experiments folder
     time_string = datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
@@ -140,19 +165,22 @@ if __name__ == '__main__':
         test_env = VecVideoRecorder(test_env, f"videos/{run.id}",
                                     record_video_trigger=record_video_trigger,
                                     video_length=200)
-    agents = create_sac_agents(train_env, args.agent_count)
+    if args.discrete_actions:
+        agents_ = create_dqn_agents(train_env, args.agent_count)
+    else:
+        agents_ = create_sac_agents(train_env, args.agent_count)
     if args.multi_threading:
         # setting those values already so the threads don't have to take
         # care of it otherwise only one thread does not throw an exception
-        wandb.config.update(agents[0].__dict__, allow_val_change=True)
+        wandb.config.update(agents_[0].__dict__, allow_val_change=True)
 
     if args.agent_count == 1:
-        callbacks = train_single(agents[0], test_env,
-                                 log_interval=args.eval_interval,
-                                 save_dir=args.save_name)
+        callbacks_ = train_single(agents_[0], test_env,
+                                  log_interval=args.eval_interval,
+                                  save_dir=args.save_name)
     else:
-        callbacks = train_full_info(agents, test_env,
-                                    log_interval=args.eval_interval,
-                                    save_dir=args.save_name)
+        callbacks_ = train_full_info(agents_, test_env,
+                                     log_interval=args.eval_interval,
+                                     save_dir=args.save_name)
 
-    log_reward_avg_in_wandb(callbacks)
+    log_reward_avg_in_wandb(callbacks_)

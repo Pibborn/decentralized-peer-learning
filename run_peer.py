@@ -2,24 +2,26 @@ import argparse
 import datetime
 
 import gym
-import pybulletgym  # noqa
-import pybullet_envs  # noqa
+import pybulletgym  # noqa: F401
+import pybullet_envs  # noqa: F401
 
 from pathlib import Path
 
 from stable_baselines3 import SAC, TD3
-from stable_baselines3.common.utils import set_random_seed, update_learning_rate
+from stable_baselines3.common.utils import set_random_seed, \
+    update_learning_rate
 
 import wandb
 from wandb.integration.sb3 import WandbCallback
 
+from dqn_peer import DQNPeer
 from peer import PeerGroup, make_peer_class
 
 from callbacks import PeerEvalCallback
 
 from utils import str2bool, add_default_values_to_parser, \
     log_reward_avg_in_wandb, add_default_values_to_train_parser, \
-    new_random_seed, make_env, Controller_Arguments
+    new_random_seed, make_env, ControllerArguments
 
 
 def add_args():
@@ -85,7 +87,7 @@ if __name__ == '__main__':
     # parse args
     arg_parser = add_args()
     args = arg_parser.parse_args()
-    CA = Controller_Arguments(args.agent_count)
+    CA = ControllerArguments(args.agent_count)
 
     # assert if any peer learning strategy is chosen peer learning must be True
     option_on = (args.use_trust or args.use_critic or args.use_agent_value)
@@ -117,41 +119,39 @@ if __name__ == '__main__':
     peer_args = []
     for i in range(args.agent_count):
         algo_args.append(
-            dict(
-                policy="MlpPolicy",
-                verbose=1,
-                policy_kwargs=dict(log_std_init=-3,
-                                   net_arch=args.net_arch),
-                buffer_size=args.buffer_size,
-                batch_size=args.batch_size,
-                ent_coef="auto",
-                gamma=args.gamma,
-                tau=args.tau,
-                train_freq=args.train_freq,
-                gradient_steps=args.gradient_steps,
-                learning_starts=args.buffer_start_size, use_sde=True,
-                learning_rate=CA.argument_for_every_agent(
-                    args.learning_rate, i
-                ),
-                tensorboard_log=str_folder,
-                device=args.device))
+            dict(policy="MlpPolicy",
+                 verbose=1,
+                 policy_kwargs=dict(net_arch=args.net_arch),
+                 buffer_size=args.buffer_size,
+                 batch_size=args.batch_size,
+                 gamma=args.gamma,
+                 tau=args.tau,
+                 train_freq=args.train_freq,
+                 target_update_interval=args.target_update_interval,
+                 gradient_steps=args.gradient_steps,
+                 learning_starts=args.buffer_start_size,
+                 learning_rate=CA.argument_for_every_agent(args.learning_rate,
+                                                           i),
+                 tensorboard_log=str_folder,
+                 device=args.device))
 
-        peer_args.append(dict(temperature=CA.argument_for_every_agent(args.T, i),
-                              temp_decay=CA.argument_for_every_agent(args.T_decay, i),
-                              algo_args=algo_args[i],
-                              env=args.env,
-                              env_args=args.env_args,
-                              use_trust=args.use_trust,
-                              use_critic=args.use_critic,
-                              buffer_size=args.trust_buffer_size,
-                              follow_steps=args.follow_steps,
-                              use_trust_buffer=args.use_trust_buffer,
-                              solo_training=not args.peer_learning,
-                              peers_sample_with_noise=args.peers_sample_with_noise,
-                              sample_random_actions=args.sample_random_actions,
-                              init_trust_values=args.init_trust_values,
-                              sample_from_suggestions=args.sample_from_suggestions,
-                              epsilon=args.epsilon))
+        peer_args.append(
+            dict(temperature=CA.argument_for_every_agent(args.T, i),
+                 temp_decay=CA.argument_for_every_agent(args.T_decay, i),
+                 algo_args=algo_args[i],
+                 env=args.env,
+                 env_args=args.env_args,
+                 use_trust=args.use_trust,
+                 use_critic=args.use_critic,
+                 buffer_size=args.trust_buffer_size,
+                 follow_steps=args.follow_steps,
+                 use_trust_buffer=args.use_trust_buffer,
+                 solo_training=not args.peer_learning,
+                 peers_sample_with_noise=args.peers_sample_with_noise,
+                 sample_random_actions=args.sample_random_actions,
+                 init_trust_values=args.init_trust_values,
+                 sample_from_suggestions=args.sample_from_suggestions,
+                 epsilon=args.epsilon))
 
     # create Peer classes
     SACPeer = make_peer_class(SAC)
@@ -163,19 +163,25 @@ if __name__ == '__main__':
     eval_envs = []
     for i in range(args.agent_count):
         args_for_agent = peer_args[i]
-        if CA.argument_for_every_agent(args.mix_agents, i) in 'TD3':
-            args_for_agent["algo_args"].pop("ent_coef")
-            args_for_agent["algo_args"].pop("use_sde")
-            args_for_agent["algo_args"]["policy_kwargs"].pop("log_std_init")
+        if CA.argument_for_every_agent(args.mix_agents, i) in 'SAC':
+            args_for_agent["algo_args"]["ent_coef"] = "auto"
+            args_for_agent["algo_args"]["use_sde"] = True
+            args_for_agent["algo_args"]["policy_kwargs"]["log_std_init"] = -3
+            peer = SACPeer(**args_for_agent, seed=new_random_seed())
+
+        elif CA.argument_for_every_agent(args.mix_agents, i) in 'TD3':
             peer = TD3Peer(**args_for_agent, seed=new_random_seed())
 
-        elif CA.argument_for_every_agent(args.mix_agents, i) in 'SAC':
-            peer = SACPeer(**args_for_agent, seed=new_random_seed())
+        elif CA.argument_for_every_agent(args.mix_agents, i) in 'DQN':
+            args_for_agent["algo_args"]["exploration_fraction"] = \
+                args.exploration_fraction
+            args_for_agent["algo_args"]["exploration_final_eps"] = \
+                args.exploration_final_eps
+            peer = DQNPeer(**args_for_agent, seed=new_random_seed())
         else:
             raise NotImplementedError(
-                f"The Agent{CA.argument_for_every_agent(args.mix_agents, i)} "
-                f"is not implemented"
-            )
+                f"The Agent{CA.argument_for_every_agent(args.mix_agents, i)}"
+                f" is not implemented")
         peers.append(peer)
 
         eval_env = make_env(args.env, args.n_eval_episodes, **args.env_args)
@@ -198,7 +204,7 @@ if __name__ == '__main__':
                                          log_path=str_folder,
                                          eval_freq=args.eval_interval,
                                          n_eval_episodes=args.n_eval_episodes)
-        callbacks[i].append(peer_callback)
+        callbacks[i].append(peer_callback)  # type: ignore
 
     # calculate number of epochs based on episode length
     max_episode_steps = max(args.min_epoch_length,
