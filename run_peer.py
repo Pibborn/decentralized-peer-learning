@@ -121,7 +121,9 @@ if __name__ == '__main__':
         algo_args.append(
             dict(policy="MlpPolicy",
                  verbose=1,
-                 policy_kwargs=dict(net_arch=args.net_arch),
+                 policy_kwargs=dict(
+                     net_arch=CA.argument_for_every_agent(args.net_arch, i)
+                 ),
                  buffer_size=args.buffer_size,
                  batch_size=args.batch_size,
                  gamma=args.gamma,
@@ -218,6 +220,8 @@ if __name__ == '__main__':
         peers[i].learning_rate = 0
         peers[i].lr_schedule = lambda _: 0.0
         update_learning_rate(peers[i].ent_coef_optimizer, 0)
+        peers[i].replay_buffer.reset()
+        peers[i].buffer.buffer.clear()
 
     # train the peer group
     peer_group.learn(n_epochs, callbacks=callbacks,

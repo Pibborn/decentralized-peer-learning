@@ -101,7 +101,7 @@ def add_default_values_to_parser(parser):
                               default=["SAC"])
 
     agent_parser.add_argument("--net-arch", type=int, nargs='*',
-                              default=[400, 300])
+                              action='append')
     agent_parser.add_argument("--load_paths", type=str, nargs='*',
                               default=[])
     agent_parser.add_argument("--agents_to_store", type=int, nargs='*',

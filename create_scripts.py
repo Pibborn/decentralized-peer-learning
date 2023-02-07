@@ -4,14 +4,13 @@ from pathlib import Path
 
 def run():
     # Writing to file
-    script_folder = 'scripts_mujoco'
+    script_folder = 'scripts_follow_count'
     output_folder = 'output'
     environments = ['HalfCheetah-v4',
-                    'Walker2d-v4',
-                    'Ant-v4',
-                    'Hopper-v4',
-                    'Swimmer-v4',
-                    'InvertedDoublePendulum-v4'
+                    #'Walker2d-v4',
+                    #'Ant-v4',
+                    #'Hopper-v4',
+                    #'Swimmer-v4',
 
                     # 'HalfCheetahBulletEnv-v0',
                     # 'HalfCheetahPyBulletEnv-v0'
@@ -24,7 +23,6 @@ def run():
                 'Hopper-v4': 'terminate_when_unhealthy=False',
                 'Swimmer-v4': '',
                 'InvertedDoublePendulum-v4': '',
-
                 'HalfCheetahBulletEnv-v0': "",
                 'HalfCheetahPyBulletEnv-v0': "",
                 'ReacherBulletEnv-v0': "",
@@ -49,13 +47,12 @@ def run():
         # 'full_info': 'run_fullinfo.py'
     }
     learning_rate = {
-        'HalfCheetah-v4': "\"lambda x: 7.3e-4\"",
+        'HalfCheetah-v4': "\"lambda x: 7.3e-4\" \"lambda x: 7.3e-4\" \"lambda x: 7.3e-4\" \"lambda x: 7.3e-4\" ",
         'Walker2d-v4': "\"lambda x: 3e-4\"",
         'Ant-v4': "\"lambda x: 3e-4\"",
         'Hopper-v4': "\"lambda x: 3e-4\"",
         'Swimmer-v4': "\"lambda x: 3e-4\"",
         'InvertedDoublePendulum-v4': "\"lambda x: 3e-4\"",
-
         'HalfCheetahBulletEnv-v0': "\"lambda x: 7.3e-4\"",
         'HalfCheetahPyBulletEnv-v0': "\"lambda x: 7.3e-4\"",
         'ReacherBulletEnv-v0': "\"lambda x: 3e-4\"",
@@ -64,12 +61,16 @@ def run():
     # learning_rate = {'7.3e-4': 7.3e-4}
     switch_ratio = 0
     mix_agents = ["\"SAC\""]  # ["\"SAC SAC SAC SAC\""]# "\"SAC SAC TD3 TD3\"", "\"TD3 TD3 TD3 TD3\""]
-    net_archs = ["\"200 300\""]  # ["\"25 25\""]  # , "\"150 200\"", "\"200 300\"", "\"350 300\""]
+    net_archs = ["\"25 25\" --net-arch \"150 200\"  "
+                 "--net-arch \"200 300\" --net-arch \"350 300\""
+                 ]  # ["\"25 25\""]
+    # , "\"150 200\"",
+    # "\"200 300\"", "\"350 300\""]
     n_timesteps = {
         'HalfCheetah-v4': 1_000_000,
         'Walker2d-v4': 1_000_000,
         'Ant-v4': 1_000_000,
-        'Hopper-v4': 1_000_000,
+        'Hopper-v4': 600_000,
         'Swimmer-v4': 1_000_000,
         'InvertedDoublePendulum-v4': 500_000,
 
@@ -83,7 +84,7 @@ def run():
         'Walker2d-v4': 1_000_000,
         'Ant-v4': 1_000_000,
         'Hopper-v4': 1_000_000,
-        'Swimmer-v4': 1_000_000,
+        'Swimmer-v4': 400_000,
         'InvertedDoublePendulum-v4': 500_000,
 
         'HalfCheetahBulletEnv-v0': 300_000,
@@ -121,10 +122,15 @@ def run():
     T_decay_list = [0]
     epsilion_list = [0.2]
     temperature_list = [1]
-    use_advantage_list = [True, False]
+    use_advantage_list = [False, True]
     sample_from_suggestions_list = [True]
     experiment_list = []
     follow_steps_list = [10]
+    use_critic_list = [True]
+    use_agent_value_list = [True]
+    use_trust_list = [True]
+    peers_sample_with_noise_list = [True]
+
 
     path = Path(f"{script_folder}/{output_folder}")
     path.mkdir(exist_ok=True, parents=True)
@@ -139,33 +145,40 @@ def run():
                                 for use_advantage in use_advantage_list:
                                     for sample_from_suggestions in sample_from_suggestions_list:
                                         for T_decay in T_decay_list:
-                                            if sample_from_suggestions == True:
-                                                for temperature in temperature_list:
-                                                    experiment_name = create_script(agent_type, env, learning_rate,
-                                                                                    mix, a_num, runnning_time,
-                                                                                    scripts, switch_ratio, net_arch,
-                                                                                    script_folder, n_timesteps,
-                                                                                    buffer_size, follow_steps,
-                                                                                    use_advantage, epsilon,
-                                                                                    temperature,
-                                                                                    sample_from_suggestions,
-                                                                                    output_folder, T_decay,
-                                                                                    env_args, buffer_start_size,
-                                                                                    gamma)
-                                                    experiment_list.append(experiment_name)
-                                            else:
-                                                temperature = 0
+                                            for use_trust in use_trust_list:
+                                                for use_agent_value in use_agent_value_list:
+                                                    for use_critic in use_critic_list:
+                                                        for peers_sample_with_noise in peers_sample_with_noise_list:
+                                                            if sample_from_suggestions == True:
+                                                                for temperature in temperature_list:
+                                                                    experiment_name = create_script(agent_type, env, learning_rate,
+                                                                                                    mix, a_num, runnning_time,
+                                                                                                    scripts, switch_ratio, net_arch,
+                                                                                                    script_folder, n_timesteps,
+                                                                                                    buffer_size, follow_steps,
+                                                                                                    use_advantage, epsilon,
+                                                                                                    temperature,
+                                                                                                    sample_from_suggestions,
+                                                                                                    output_folder, T_decay,
+                                                                                                    env_args, buffer_start_size,
+                                                                                                    gamma, use_critic, use_agent_value, use_trust,
+                                                                                                peers_sample_with_noise)
+                                                                    experiment_list.append(experiment_name)
+                                                            else:
+                                                                temperature = 0
 
-                                                experiment_name = create_script(agent_type, env, learning_rate, mix,
-                                                                                a_num, runnning_time, scripts,
-                                                                                switch_ratio, net_arch,
-                                                                                script_folder, n_timesteps,
-                                                                                buffer_size, follow_steps,
-                                                                                use_advantage, epsilon, temperature,
-                                                                                sample_from_suggestions,
-                                                                                output_folder, T_decay, env_args,
-                                                                                buffer_start_size, gamma)
-                                                experiment_list.append(experiment_name)
+                                                                experiment_name = create_script(agent_type, env, learning_rate, mix,
+                                                                                                a_num, runnning_time, scripts,
+                                                                                                switch_ratio, net_arch,
+                                                                                                script_folder, n_timesteps,
+                                                                                                buffer_size, follow_steps,
+                                                                                                use_advantage, epsilon, temperature,
+                                                                                                sample_from_suggestions,
+                                                                                                output_folder, T_decay, env_args,
+                                                                                                buffer_start_size, gamma,
+                                                                                                use_critic, use_agent_value, use_trust,
+                                                                                                peers_sample_with_noise)
+                                                                experiment_list.append(experiment_name)
 
     write_experiment_names_to_file(experiment_list, script_folder)
     write_sbatch_comments_to_file(experiment_list, script_folder)
@@ -173,11 +186,12 @@ def run():
 
 def create_script(agent_type, enviroments, learning_rate, mix_agents, number_agent, runnning_time, scripts,
                   switch_ratio, net_arch, script_folder, n_timesteps, buffer_size, follow_steps, use_advantage, epsilon,
-                  temperature, sample_from_suggestions, output_folder, T_decay, env_args, buffer_start_size, gamma):
-    experiment_name = f'{agent_type}_{number_agent}_{enviroments}_{net_arch}' \
-                      f'_adv_{use_advantage}_T_{temperature}'
-
-    # f'_{mix_agents}_{learning_rate_key}' \f'_sr_{switch_ratio}_fs_{follow_steps}' \
+                  temperature, sample_from_suggestions, output_folder, T_decay, env_args, buffer_start_size, gamma,
+                  use_critic, use_agent_value, use_trust, peers_sample_with_noise):
+    experiment_name = f'{agent_type}_{number_agent}_{enviroments}'\
+                      f"_adv_{use_advantage}_" \
+                      f"{'A' if use_agent_value else ''}{'C' if use_critic else ''}{'T' if use_trust else ''}_" \
+                      f"peer_noise_sample_{peers_sample_with_noise}_multiple_arch"
 
     experiment_name = re.sub("\"", "", experiment_name)
     experiment_name = re.sub(" ", "_", experiment_name)
@@ -195,7 +209,8 @@ def create_script(agent_type, enviroments, learning_rate, mix_agents, number_age
                                        gamma)
         if agent_type == 'peer':
             add_peer_arguments(file1, switch_ratio, mix_agents, use_advantage, epsilon, temperature,
-                               sample_from_suggestions)
+                               sample_from_suggestions, use_critic, use_agent_value, use_trust,
+                               peers_sample_with_noise)
         elif agent_type == 'full_info':
             add_full_info_arguments(file1, mix_agents)
 
@@ -257,14 +272,19 @@ def write_python_default_parameter(agent_type, enviroments, file1, learning_rate
     file1.writelines(f"  --T-decay {T_decay}  \\\n")
 
 
-def add_peer_arguments(file1, switch_ratio, mix_agents, use_advantage, epsilon, temperature, sample_from_suggestions):
+def add_peer_arguments(file1, switch_ratio, mix_agents, use_advantage, epsilon, temperature, sample_from_suggestions,
+                       use_critic, use_agent_value, use_trust, peers_sample_with_noise):
     file1.writelines(f"  --mix-agents {mix_agents}  \\\n")
     file1.writelines(f"  --switch-ratio {switch_ratio} \\\n")
     file1.writelines(f"  --use-advantage {use_advantage} \\\n")
     file1.writelines(f"  --epsilon {epsilon} \\\n")
     file1.writelines(f"  --T {temperature} \\\n")
     file1.writelines(f"--sample-from-suggestions {sample_from_suggestions} \\\n")
-    file1.writelines(f"--use-critic True --use-agent-value True --use-trust True --peers-sample-with-noise False \n")
+    file1.writelines(f"--use-critic {use_critic} \\\n")
+    file1.writelines(f"--use-agent-value {use_agent_value} \\\n")
+    file1.writelines(f"--use-trust {use_trust} \\\n")
+    file1.writelines(f"--peers-sample-with-noise {peers_sample_with_noise} \\\n")
+    file1.writelines(f"\n")
 
 
 def add_full_info_arguments(file1, mix_agents):
