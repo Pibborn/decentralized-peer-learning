@@ -71,6 +71,8 @@ class PeerEvalCallback(EvalCallback):
             if 'trust_values' in self.peer_group.peers[0].__dict__:
                 self.track_trust_values()
             PeerEvalCallback.track_followed_agent(self.peer_group.active_peer)
+
+            wandb.log({'make_step': self.n_calls}, commit=True)
         return True
 
     def track_agent_values(self):
