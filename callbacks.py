@@ -72,7 +72,7 @@ class PeerEvalCallback(EvalCallback):
                 self.track_trust_values()
             PeerEvalCallback.track_followed_agent(self.peer_group.active_peer)
 
-            wandb.log({'make_step': self.n_calls}, commit=True)
+            wandb.log({}, commit=True)  # actually log data
         return True
 
     def track_agent_values(self):
