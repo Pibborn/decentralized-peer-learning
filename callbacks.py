@@ -36,10 +36,6 @@ class PeerEvalCallback(EvalCallback):
         not been wrapped with a Monitor wrapper)
     """
 
-    # suboptimal but quick solution
-    follow_matrix = None
-    last_logged_matrix = None
-
     def __init__(
         self,
         peer_group: PeerGroup,
@@ -51,9 +47,8 @@ class PeerEvalCallback(EvalCallback):
         self.eval_envs = eval_envs
         self.n_samples = n_samples
 
-        if PeerEvalCallback.follow_matrix is None:
-            PeerEvalCallback.follow_matrix = np.zeros((len(peer_group),
-                                                       len(peer_group)))
+        self.last_logged_matrix = None
+        self.follow_matrix = np.zeros((len(peer_group), len(peer_group)))
 
         super().__init__(**kwargs)
 
@@ -70,7 +65,7 @@ class PeerEvalCallback(EvalCallback):
                 self.track_agent_values()
             if 'trust_values' in self.peer_group.peers[0].__dict__:
                 self.track_trust_values()
-            PeerEvalCallback.track_followed_agent(self.peer_group.active_peer)
+            self.track_followed_agent(self.peer_group.active_peer)
 
             wandb.log({}, commit=True)  # actually log data
         return True
@@ -94,23 +89,21 @@ class PeerEvalCallback(EvalCallback):
     def accumulate_followed_peers(self):
         peer = self.peer_group.active_peer
         followed_peer = self.peer_group.peers[peer].followed_peer
-        PeerEvalCallback.follow_matrix[peer, followed_peer] += 1
+        if followed_peer is not None:
+            self.follow_matrix[peer, followed_peer] += 1
 
-    @staticmethod
-    def track_followed_agent(active_peer):
-        if PeerEvalCallback.last_logged_matrix is None:
-            diff = PeerEvalCallback.follow_matrix
+    def track_followed_agent(self, active_peer):
+        if self.last_logged_matrix is None:
+            diff = self.follow_matrix
         else:
-            diff = PeerEvalCallback.follow_matrix -\
-                   PeerEvalCallback.last_logged_matrix
+            diff = self.follow_matrix - self.last_logged_matrix
 
         for (followed_peer,), count in np.ndenumerate(
-                PeerEvalCallback.follow_matrix[active_peer]):
+                self.follow_matrix[active_peer]):
             wandb.log({'Peer{}_0/eval/follow_count{}'.format(
                 active_peer, followed_peer): count},  commit=False)
             # also log difference
             wandb.log({'Peer{}_0/eval/follow_count_{}diff'.format(
                 active_peer, followed_peer): diff[active_peer, followed_peer]},
                       commit=False)
-        PeerEvalCallback.last_logged_matrix = \
-            np.copy(PeerEvalCallback.follow_matrix)
+        self.last_logged_matrix = np.copy(self.follow_matrix)
