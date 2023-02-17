@@ -40,3 +40,47 @@ gym.envs.registration.register(
         dims=2
     )
 )
+
+gym.envs.registration.register(
+    id="Room-v0",
+    entry_point="env:RoomEnv",
+    max_episode_steps=150,
+    reward_threshold=0.99,  # 2D: max_steps - (length -1) * 3 / 4
+    kwargs=dict(
+        length=23,
+        dims=2
+    )
+)
+
+gym.envs.registration.register(
+    id="Room-v1",
+    entry_point="env:RoomEnv",
+    max_episode_steps=150,
+    reward_threshold=0.99,  # 2D: max_steps - (length -1) * 3 / 4
+    kwargs=dict(
+        length=23,
+        dims=2
+    )
+)
+
+gym.envs.registration.register(
+    id="Room-v2",
+    entry_point="env:RoomEnv",
+    max_episode_steps=150,
+    reward_threshold=0.99,  # 2D: max_steps - (length -1) * 3 / 4
+    kwargs=dict(
+        length=23,
+        dims=2
+    )
+)
+
+gym.envs.registration.register(
+    id="Room-v3",
+    entry_point="env:RoomEnv",
+    max_episode_steps=150,
+    reward_threshold=0.99,  # 2D: max_steps - (length -1) * 3 / 4
+    kwargs=dict(
+        length=23,
+        dims=2
+    )
+)
