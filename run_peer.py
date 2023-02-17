@@ -16,6 +16,7 @@ from wandb.integration.sb3 import WandbCallback
 
 from dqn_peer import DQNPeer
 from peer import PeerGroup, make_peer_class
+import env as local_envs  # noqa: F401
 
 from callbacks import PeerEvalCallback
 
