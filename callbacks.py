@@ -56,11 +56,6 @@ class PeerEvalCallback(EvalCallback):
         self.accumulate_followed_peers()  # needs to be done at every step
         super()._on_step()
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
-            # skip diversity evaluation if first epoch for any peer
-            minimum_samples_in_buffer = np.min([peer.replay_buffer.pos for
-                                                peer in self.peer_group.peers])
-            if self.n_samples > minimum_samples_in_buffer:
-                return True
             if 'agent_values' in self.peer_group.__dict__:
                 self.track_agent_values()
             if 'trust_values' in self.peer_group.peers[0].__dict__:
