@@ -57,9 +57,9 @@ def read_env_data_from_csv(args, experiment_dict):
     experiment_dict['Cheetah'] = pd.read_csv(
         Path(args['path_to_project']) / args['path_half_cheetah']
     )
-    experiment_dict['Ant'] = pd.read_csv(
-        Path(args['path_to_project']) / args['path_ant']
-    )
+    # experiment_dict['Ant'] = pd.read_csv(
+    #     Path(args['path_to_project']) / args['path_ant']
+    # )
     experiment_dict['Hopper'] = pd.read_csv(
         Path(args['path_to_project']) / args['path_hopper']
     )

@@ -10,6 +10,7 @@ class RoomEnv(Hallway):
         self.start_location = self.size // 2  # start in the middle
         self.observation_space = gym.spaces.Box(0, 1, shape=(2 * dims,))
         self.np_random = np.random.default_rng()
+        
 
     def reset(self):
         pos = super().reset()
@@ -31,56 +32,57 @@ class RoomEnv(Hallway):
 
 
 gym.envs.registration.register(
-    id="Room-v0",
+    id="Room-v21",
     entry_point="env:RoomEnv",
-    max_episode_steps=150,
+    max_episode_steps=100,
     reward_threshold=0.99,  # 2D: max_steps - (length -1) * 3 / 4
     kwargs=dict(
-        length=23,
+        length=21,
         dims=2
     )
 )
 
 gym.envs.registration.register(
-    id="Room-v0",
+    id="Room-v27",
     entry_point="env:RoomEnv",
     max_episode_steps=150,
     reward_threshold=0.99,  # 2D: max_steps - (length -1) * 3 / 4
     kwargs=dict(
-        length=23,
+        length=27,
         dims=2
     )
 )
 
 gym.envs.registration.register(
-    id="Room-v1",
+    id="Room-v33",
     entry_point="env:RoomEnv",
-    max_episode_steps=150,
+    max_episode_steps=250,
     reward_threshold=0.99,  # 2D: max_steps - (length -1) * 3 / 4
     kwargs=dict(
-        length=23,
+        length=33,
         dims=2
     )
 )
 
 gym.envs.registration.register(
-    id="Room-v2",
+    id="Room-v39",
     entry_point="env:RoomEnv",
-    max_episode_steps=150,
+    max_episode_steps=400,
     reward_threshold=0.99,  # 2D: max_steps - (length -1) * 3 / 4
     kwargs=dict(
-        length=23,
+        length=39,
         dims=2
     )
 )
 
 gym.envs.registration.register(
-    id="Room-v3",
+    id="Room-v45",
     entry_point="env:RoomEnv",
-    max_episode_steps=150,
+    max_episode_steps=600,
     reward_threshold=0.99,  # 2D: max_steps - (length -1) * 3 / 4
     kwargs=dict(
-        length=23,
+        length=45,
         dims=2
     )
 )
+
