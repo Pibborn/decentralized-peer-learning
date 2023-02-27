@@ -28,7 +28,8 @@ class Hallway(gym.Env):
         return self.agent_location / (self.size - 1)
 
     def step(self, action: int):
-        assert self.action_space.contains(action)
+        assert self.action_space.contains(action), f"{action} is not a valid" \
+                                                   f"action"
         reward = -0.001
         done = False
         d = action // 2
