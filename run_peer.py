@@ -2,8 +2,8 @@ import argparse
 import datetime
 
 import gym
-import pybulletgym  # noqa: F401
-import pybullet_envs  # noqa: F401
+# import pybulletgym  # noqa: F401
+# import pybullet_envs  # noqa: F401
 
 from pathlib import Path
 
@@ -14,6 +14,7 @@ from stable_baselines3.common.utils import set_random_seed, \
 import wandb
 from wandb.integration.sb3 import WandbCallback
 
+import predefined_agents
 from dqn_peer import DQNPeer
 from peer import PeerGroup, make_peer_class
 import env as local_envs  # noqa: F401
@@ -166,24 +167,31 @@ if __name__ == '__main__':
     eval_envs = []
     for i in range(args.agent_count):
         args_for_agent = peer_args[i]
-        if CA.argument_for_every_agent(args.mix_agents, i) in 'SAC':
+        agent_algo = CA.argument_for_every_agent(args.mix_agents, i)
+
+        if agent_algo == 'SAC':
             args_for_agent["algo_args"]["ent_coef"] = "auto"
             args_for_agent["algo_args"]["use_sde"] = True
             args_for_agent["algo_args"]["policy_kwargs"]["log_std_init"] = -3
             peer = SACPeer(**args_for_agent, seed=new_random_seed())
 
-        elif CA.argument_for_every_agent(args.mix_agents, i) in 'TD3':
+        elif agent_algo == 'TD3':
             peer = TD3Peer(**args_for_agent, seed=new_random_seed())
 
-        elif CA.argument_for_every_agent(args.mix_agents, i) in 'DQN':
+        elif agent_algo == 'DQN':
             args_for_agent["algo_args"]["exploration_fraction"] = \
                 args.exploration_fraction
             args_for_agent["algo_args"]["exploration_final_eps"] = \
                 args.exploration_final_eps
             peer = DQNPeer(**args_for_agent, seed=new_random_seed())
+
+        elif agent_algo in ['Adversarial', 'Expert']:
+            class_str = f"predefined_agents." \
+                        f"{args.env.split('-')[0]}{agent_algo}"
+            peer = eval(class_str)(**args_for_agent, seed=new_random_seed())
         else:
             raise NotImplementedError(
-                f"The Agent{CA.argument_for_every_agent(args.mix_agents, i)}"
+                f"The Agent {agent_algo}"
                 f" is not implemented")
         peers.append(peer)
 
