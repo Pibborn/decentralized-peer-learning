@@ -3,13 +3,20 @@ from pathlib import Path
 import re
 import matplotlib.pyplot as plt
 
+
 def run(args):
-    id_of_experiments = [' ACT F S', ' AC_ F S', 'A_T F S', ' _CT F S',
-                         '_C_ F S', ' A__ F S', ' __T F S', ' Single Agent',
-                         'follow random'
-                         ]
-    result_dict={}
-    experiment_dict={}
+    id_of_experiments = { 'ACT F S': 'tab:blue',
+                         ' AC_ F S': 'tab:orange',
+                         'A_T F S': 'tab:green',
+                         ' _CT F S':'tab:red',
+                         '_C_ F S':'tab:purple',
+                         ' A__ F S':'tab:brown',
+                         ' __T F S':'tab:pink',
+                         ' Single Agent':'tab:gray',
+                         'follow random':'tab:olive'
+                         }
+    result_dict = {}
+    experiment_dict = {}
 
     read_env_data_from_csv(args, experiment_dict)
     for env, df in experiment_dict.items():
@@ -17,7 +24,7 @@ def run(args):
                                         result_dict)
     mean_of_env = {}
     mean_of_env['global_steps'] = result_dict['Cheetah']['global_step']
-    for id in id_of_experiments:
+    for id in id_of_experiments.keys():
         average_experiments_across_environments(experiment_dict, id,
                                                 mean_of_env, result_dict)
     create_plot(args, id_of_experiments, mean_of_env)
@@ -25,10 +32,11 @@ def run(args):
 
 def create_plot(args, id_of_experiments, mean_of_env):
     fig, ax = plt.subplots()
-    for id in id_of_experiments:
+    for id in id_of_experiments.keys():
         ax.plot(mean_of_env['global_steps'],
                 mean_of_env[id]['mean_of_means'],
-                label=id)
+                label=id.replace('_',''),
+                c=id_of_experiments[id])
     ax.legend()
     save_path = Path(args['path_to_project']) / 'plots_for_paper/plots'
     save_path.mkdir(exist_ok=True, parents=True)
@@ -65,10 +73,9 @@ def average_experiments_for_one_env(df, env, id_of_experiments, result_dict):
     df_column_names = df.columns.values.tolist()
     normalize_values_in_one_env(df, df_column_names)
     result_dict[env]['global_step'] = df['global_step']
-    for id in id_of_experiments:
+    for id in id_of_experiments.keys():
         average_one_experiment_in_one_env(df, df_column_names, env, id,
                                           result_dict)
-
 
 
 def normalize_values_in_one_env(df, df_column_names):
@@ -111,7 +118,7 @@ def average_peers_in_one_experiment(df, df_column_names, experiment_id):
     mean = df[experiment_columns].mean(axis=1)
     std = df[experiment_columns].std(axis=1)
     step = df[experiment_step]
-    return mean, std,  step
+    return mean, std, step
 
 
 def get_columns_including_str(df_column_names, regex):
@@ -120,8 +127,6 @@ def get_columns_including_str(df_column_names, regex):
         if re.match(regex, feature_name):
             max_column_name.append(feature_name)
     return max_column_name
-
-
 
 
 if __name__ == '__main__':
