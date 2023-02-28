@@ -14,7 +14,7 @@ from stable_baselines3.common.utils import set_random_seed, \
 import wandb
 from wandb.integration.sb3 import WandbCallback
 
-import predefined_agents
+import predefined_agents  # noqa: F401
 from dqn_peer import DQNPeer
 from peer import PeerGroup, make_peer_class
 import env as local_envs  # noqa: F401
@@ -81,6 +81,10 @@ def add_args():
     peer_learning.add_argument("--sample-from-suggestions", type=str2bool,
                                nargs="?", const=False, default=False)
     peer_learning.add_argument("--epsilon", type=float, default=0.0)
+    peer_learning.add_argument("--max-peer-epochs", type=int,
+                               default=1_000_000_000)
+    peer_learning.add_argument("--only-follow-peers", type=str2bool,
+                               nargs="?", const=False, default=False)
 
     return parser
 
@@ -113,7 +117,7 @@ if __name__ == '__main__':
                      project="peer-learning",
                      monitor_gym=True, sync_tensorboard=True,
                      notes=f"Peer Learning with {args.agent_count} agents on "
-                           f"the {args.env[:-3]} environment.",
+                           f"the {args.env.split('-')[0]} environment.",
                      dir=str_folder, mode=args.wandb)
 
     # initialize peer group
@@ -155,7 +159,8 @@ if __name__ == '__main__':
                  sample_random_actions=args.sample_random_actions,
                  init_trust_values=args.init_trust_values,
                  sample_from_suggestions=args.sample_from_suggestions,
-                 epsilon=args.epsilon))
+                 epsilon=args.epsilon,
+                 only_follow_peers=args.only_follow_peers))
 
     # create Peer classes
     SACPeer = make_peer_class(SAC)
@@ -204,7 +209,8 @@ if __name__ == '__main__':
     peer_group = PeerGroup(peers, use_agent_values=args.use_agent_value,
                            lr=args.trust_lr, switch_ratio=args.switch_ratio,
                            init_agent_values=args.init_agent_values,
-                           use_advantage=args.use_advantage)
+                           use_advantage=args.use_advantage,
+                           max_peer_epochs=args.max_peer_epochs)
 
     # create callbacks
     for i in range(args.agent_count):

@@ -14,7 +14,8 @@ from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 class PeerGroup:
     """ A group of peers who train together. """
     def __init__(self, peers, use_agent_values=False, init_agent_values=200.,
-                 lr=0.95, switch_ratio=0, use_advantage=False):
+                 lr=0.95, switch_ratio=0, use_advantage=False,
+                 max_peer_epochs=1_000_000_000):
         """
         :param peers: An iterable of peer agents
         :param lr: The learning rate for trust and agent values
@@ -27,6 +28,7 @@ class PeerGroup:
         self.active_peer = None  # index of currently learning peer
         self.solo_epoch = False
         self.use_advantage = use_advantage
+        self.max_peer_epochs = max_peer_epochs
 
         if use_agent_values:
             self.agent_values = np.full(len(peers), init_agent_values,
@@ -50,28 +52,29 @@ class PeerGroup:
         for peer in self.peers:
             bs = batch_size // len(self.peers)
             # reward, action, peer, new_obs, old_obs
-            batch = peer.buffer.sample(bs)
-            if batch is None:  # buffer not sufficiently full
-                return
+            if peer.buffer is not None:
+                batch = peer.buffer.sample(bs)
+                if batch is None:  # buffer not sufficiently full
+                    return
 
-            obs = np.array([b[3] for b in batch]).reshape(bs, -1)
-            v = peer.value(obs)
+                obs = np.array([b[3] for b in batch]).reshape(bs, -1)
+                v = peer.value(obs)
 
-            if self.use_advantage:
-                # previous observations
-                prev_obs = np.array([b[4] for b in batch]).reshape(bs, -1)
-                prev_v = peer.value(prev_obs)
-            else:
-                prev_v = np.zeros_like(v)
+                if self.use_advantage:
+                    # previous observations
+                    prev_obs = np.array([b[4] for b in batch]).reshape(bs, -1)
+                    prev_v = peer.value(prev_obs)
+                else:
+                    prev_v = np.zeros_like(v)
 
-            for i in range(len(batch)):
-                target = (batch[i][0] + peer.gamma * v[i]) - prev_v[i]
-                counts[batch[i][2]] += 1
-                targets[batch[i][2]] += target
+                for i in range(len(batch)):
+                    target = (batch[i][0] + peer.gamma * v[i]) - prev_v[i]
+                    counts[batch[i][2]] += 1
+                    targets[batch[i][2]] += target
 
         # ensure counts are >= 1, don't change these values
-        counts[counts == 0] = 1
         targets[counts == 0] = self.agent_values[counts == 0]
+        counts[counts == 0] = 1
 
         targets /= counts
         self.agent_values += self.lr * (targets - self.agent_values)
@@ -84,11 +87,18 @@ class PeerGroup:
         if boost_single:
             self.switch_ratio = 1 / self.switch_ratio
 
+        self.solo_epoch = False
+        peer_epochs = 0
         for i in range(n_epochs):
-            # ratio of 0 never performs a solo episode
-            self.solo_epoch = i % (1 + self.switch_ratio) == 1
-            if boost_single:
-                self.solo_epoch = not self.solo_epoch
+            # don't do peer learning forever
+            if peer_epochs < self.max_peer_epochs:
+                # ratio of 0 never performs a solo episode
+                if (i % (1 + self.switch_ratio) == 1) ^ boost_single:
+                    self.solo_epoch = True
+                else:
+                    peer_epochs += 1
+            else:  # budget spent
+                self.solo_epoch = True
 
             for p, peer, callback in zip(it.count(), self.peers, callbacks):
                 self.active_peer = p
@@ -119,8 +129,8 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                      buffer_size=1000, follow_steps=10, seed=None,
                      use_trust_buffer=True, solo_training=False,
                      peers_sample_with_noise=False,
-                     sample_random_actions=False,
-                     sample_from_suggestions=True, epsilon=0.0, env_args=None):
+                     sample_random_actions=False, sample_from_suggestions=True,
+                     epsilon=0.0, env_args=None, only_follow_peers=False):
             if env_args is None:
                 env_args = {}
             super(Peer, self).__init__(**algo_args,
@@ -167,6 +177,8 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
 
                 self.follow_steps = follow_steps
                 self.steps_followed = 0
+
+                self.only_follow_peers = only_follow_peers
 
         @property
         def n_peers(self):
@@ -236,6 +248,10 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                 p = np.exp(values / temp)
                 p /= np.sum(p)
                 self.followed_peer = np.random.choice(self.n_peers, p=p)
+            elif self.only_follow_peers:
+                p = np.full(self.n_peers, 1 / (self.n_peers - 1))
+                p[self.group.peers.index(self)] = 0
+                self.followed_peer = np.random.choice(self.n_peers, p=p)
             else:
                 # act (epsilon) greedily
                 if np.random.random(1) >= self.epsilon:
@@ -287,8 +303,8 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                 targets[batch[i][2]] += target
 
             # ensure counts are >= 1, don't change these values
-            counts[counts == 0] = 1
             targets[counts == 0] = self.trust_values[counts == 0]
+            counts[counts == 0] = 1
 
             targets /= counts
             self.trust_values += self.group.lr * (targets - self.trust_values)
@@ -337,7 +353,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             if not (self.solo_training or solo_episode):
                 self.predict = self._predict_train
             else:
-                self.followed_peer = np.where(self.group.peers == self)
+                self.followed_peer = self.group.peers.index(self)
 
             result = super(Peer, self).learn(**kwargs)
 
