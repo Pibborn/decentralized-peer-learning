@@ -12,7 +12,7 @@ class ManualPeer(ABC):
         self.group = None
         self.peer_values = dict()
         self.peer_value_functions = dict()
-        self.buffer = SuggestionBuffer(0)
+        self.buffer = None
         self.epoch = 0
         self.policy = self  # for suggestions
         self.np_random = np.random.default_rng(seed)
