@@ -66,8 +66,8 @@ class ControllerArguments:
             elif len(arguments) == self.number_agents:
                 return arguments[i]
             else:
-                raise AssertionError(f'number of arguments {len(arguments)}'
-                                     f'has to be 1 or == number of agents'
+                raise AssertionError(f'number of arguments ({len(arguments)}) '
+                                     f'has to be 1 or == number of agents '
                                      f'({self.number_agents}) input is'
                                      f' {arguments}')
         else:
