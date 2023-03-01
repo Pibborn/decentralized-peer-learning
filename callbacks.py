@@ -1,5 +1,6 @@
 from typing import List, Union
 
+import time
 import gym
 import numpy as np
 import wandb
@@ -50,10 +51,18 @@ class PeerEvalCallback(EvalCallback):
         self.last_logged_matrix = None
         self.follow_matrix = np.zeros((len(peer_group), len(peer_group)))
 
+        self.start_time = time.time()
+
         super().__init__(**kwargs)
 
     def _on_step(self) -> bool:
         self.accumulate_followed_peers()  # needs to be done at every step
+
+        # log time for debugging etc.
+        self.logger.record("time/time_elapsed",
+                           time.time() - self.start_time,
+                           exclude="tensorboard")
+
         super()._on_step()
         if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
             if 'agent_values' in self.peer_group.__dict__:
