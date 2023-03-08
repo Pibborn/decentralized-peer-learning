@@ -1,9 +1,0 @@
-pybullet build time: Oct 11 2021 20:59:00
-/gpfs/fs1/home/apuhl/decentralized-peer-learning/virt/lib/python3.7/site-packages/gym/spaces/box.py:74: UserWarning: [33mWARN: Box bound precision lowered by casting to float32[0m
-  "Box bound precision lowered by casting to {}".format(self.dtype)
-Traceback (most recent call last):
-  File "dictator.py", line 268, in <module>
-    if save_info[k]:
-TypeError: 'bool' object is not subscriptable
-srun: error: z0068: task 0: Exited with exit code 1
-srun: Terminating job step 10024053.0
