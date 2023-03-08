@@ -202,8 +202,7 @@ if __name__ == '__main__':
 
         eval_env = make_env(args.env, args.n_eval_episodes, **args.env_args)
         # every agent gets its own callbacks
-        callbacks.append([WandbCallback(gradient_save_freq=args.eval_interval,
-                                        verbose=2)])
+        callbacks.append([WandbCallback(verbose=2)])
         eval_envs.append(eval_env)
 
     peer_group = PeerGroup(peers, use_agent_values=args.use_agent_value,
