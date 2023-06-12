@@ -72,12 +72,12 @@ run_peer.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminat
 ### Walker2d
 #### Peer Learning
 ```bash
-run_peer.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 1 --learning_rate "lambda x: 7.3e-4" "lambda x: 7.3e-4" "lambda x: 7.3e-4" "lambda x: 7.3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 0 --sample-from-suggestions False --use-critic False --use-agent-value False --use-trust False --peers-sample-with-noise True --only-follow-peers True --max-peer-epochs 74
+run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 100000000
 ```
 
 #### Single Agent
 ```bash
-run_fullinfo.py --save-name *some_name --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 1 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --learning_rate "lambda x: 3e-4" --mix-agents SAC
+run_fullinfo.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 1 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --learning_rate "lambda x: 3e-4" --mix-agents SAC
 ```
 
 #### Random Advice
@@ -116,20 +116,295 @@ We used a modified (to work with our exeriments) version of the code provided by
 
 ## Ablation Study
 ### HalfCheetah
+#### With Advantage
+##### Agent Values + Trust + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 10000 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 7.3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust True --peers-sample-with-noise True
+```
 
+##### Agent Values + Trust
+```bash
+run_peer.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 10000 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 7.3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic False --use-agent-value True --use-trust True --peers-sample-with-noise True
+```
 
+##### Agent Values + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 10000 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 7.3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust False --peers-sample-with-noise True
+```
+
+##### Trust + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 10000 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 7.3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value False --use-trust True --peers-sample-with-noise True
+```
+
+##### Agent Values
+```bash
+run_peer.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 10000 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 7.3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic False --use-agent-value True --use-trust False --peers-sample-with-noise True
+```
+
+##### Trust
+```bash
+run_peer.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 10000 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 7.3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic False --use-agent-value False --use-trust True --peers-sample-with-noise True
+```
+
+##### Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 10000 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 7.3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value False --use-trust False --peers-sample-with-noise True
+```
+
+#### Without Advantage
+##### Agent Values + Trust + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 10000 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 7.3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust True --peers-sample-with-noise True
+```
+
+##### Agent Values + Trust
+```bash
+run_peer.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 10000 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 7.3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic False --use-agent-value True --use-trust True --peers-sample-with-noise True
+```
+
+##### Agent Values + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 10000 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 7.3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust False --peers-sample-with-noise True
+```
+
+##### Trust + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 10000 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 7.3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value False --use-trust True --peers-sample-with-noise True
+```
+
+##### Agent Values
+```bash
+run_peer.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 10000 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 7.3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic False --use-agent-value True --use-trust False --peers-sample-with-noise True
+```
+
+##### Trust
+```bash
+run_peer.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 10000 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 7.3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic False --use-agent-value False --use-trust True --peers-sample-with-noise True
+```
+
+##### Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 10000 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 7.3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value False --use-trust False --peers-sample-with-noise True
+```
 
 ### Ant
+#### With Advantage
+##### Agent Values + Trust + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
 
+##### Agent Values + Trust
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic False --use-agent-value True --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
 
+##### Agent Values + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Trust + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic True --use-agent-value False --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Agent Values
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic False --use-agent-value True --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Trust
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic False --use-agent-value False --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic True --use-agent-value False --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+#### Without Advantage
+##### Agent Values + Trust + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Agent Values + Trust
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic False --use-agent-value True --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Agent Values + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Trust + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic True --use-agent-value False --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Agent Values
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic False --use-agent-value True --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Trust
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic False --use-agent-value False --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic True --use-agent-value False --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
 
 ### Hopper
+#### With Advantage
+##### Agent Values + Trust + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
 
+##### Agent Values + Trust
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic False --use-agent-value True --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
 
+##### Agent Values + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Trust + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic True --use-agent-value False --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Agent Values
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic False --use-agent-value True --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Trust
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic False --use-agent-value False --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic True --use-agent-value False --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+#### Without Advantage
+##### Agent Values + Trust + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Agent Values + Trust
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic False --use-agent-value True --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Agent Values + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Trust + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic True --use-agent-value False --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Agent Values
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic False --use-agent-value True --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Trust
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic False --use-agent-value False --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
+
+##### Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic True --use-agent-value False --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
+```
 
 ### Walker2d
+#### With Advantage
+##### Agent Values + Trust + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 100000000
+```
 
+##### Agent Values + Trust
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic False --use-agent-value True --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 100000000
+```
 
+##### Agent Values + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 100000000
+```
+
+##### Trust + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value False --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 100000000
+```
+
+##### Agent Values
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic False --use-agent-value True --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 100000000
+```
+
+##### Trust
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic False --use-agent-value False --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 100000000
+```
+
+##### Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value False --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 100000000
+```
+
+#### Without Advantage
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 100000000
+```
+
+##### Agent Values + Trust
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic False --use-agent-value True --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 100000000
+```
+
+##### Agent Values + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value True --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 100000000
+```
+
+##### Trust + Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value False --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 100000000
+```
+
+##### Agent Values
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic False --use-agent-value True --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 100000000
+```
+
+##### Trust
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic False --use-agent-value False --use-trust True --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 100000000
+```
+
+##### Critic
+```bash
+run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 4 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 1 2 3 --T-decay 0 --mix-agents SAC SAC SAC SAC --switch-ratio 0 --use-advantage False --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic True --use-agent-value False --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 100000000
+```
 
 ## Adversarial Setting
 
