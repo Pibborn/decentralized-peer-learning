@@ -71,7 +71,15 @@ class PeerEvalCallback(EvalCallback):
                 self.track_trust_values()
             self.track_followed_agent(self.peer_group.active_peer)
 
-            wandb.log({}, commit=True)  # actually log data
+            peer = self.peer_group.active_peer
+            eval_values = {
+                f"Peer{peer}_0/eval/mean_reward": self.last_mean_reward,
+            }
+            if peer == len(self.peer_group) - 1:
+                eval_values["global_step"] = self.n_calls
+                wandb.log(eval_values, commit=True)
+            else:
+                wandb.log(eval_values, commit=False)
         return True
 
     def track_agent_values(self):

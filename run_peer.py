@@ -115,7 +115,7 @@ if __name__ == '__main__':
     wandb.tensorboard.patch(root_logdir=str_folder)
     run = wandb.init(entity="jgu-wandb", config=args.__dict__,
                      project="peer-learning",
-                     monitor_gym=True, sync_tensorboard=True,
+                     monitor_gym=True, sync_tensorboard=False,
                      notes=f"Peer Learning with {args.agent_count} agents on "
                            f"the {args.env.split('-')[0]} environment.",
                      dir=str_folder, mode=args.wandb)
@@ -140,7 +140,7 @@ if __name__ == '__main__':
                  learning_starts=args.buffer_start_size,
                  learning_rate=CA.argument_for_every_agent(args.learning_rate,
                                                            i),
-                 tensorboard_log=str_folder,
+                 tensorboard_log=None,
                  device=args.device))
 
         peer_args.append(

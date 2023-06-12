@@ -1,19 +1,30 @@
+import os
+import numpy as np
+
 import pandas as pd
 from pathlib import Path
 import re
 import matplotlib.pyplot as plt
 
+from reard_avg import make_full_table
+
 
 def run(args):
-    id_of_experiments = { 'ACT F S': 'tab:blue',
+    id_of_experiments = {'ACT F S': 'tab:blue',
                          ' AC_ F S': 'tab:orange',
                          'A_T F S': 'tab:green',
-                         ' _CT F S':'tab:red',
-                         '_C_ F S':'tab:purple',
-                         ' A__ F S':'tab:brown',
-                         ' __T F S':'tab:pink',
-                         ' Single Agent':'tab:gray',
-                         'follow random':'tab:olive'
+                         ' _CT F S': 'tab:red',
+                         ' A__ F S': 'tab:brown',
+                         ' __T F S': 'tab:pink',
+                         # '_C_ X S': 'tab:purple',
+                         'ACT A S': 'tab:blue',
+                         ' AC_ A S': 'tab:orange',
+                         'A_T A S': 'tab:green',
+                         ' _CT A S': 'tab:red',
+                         ' A__ A S': 'tab:brown',
+                         ' __T A S': 'tab:pink',
+                         ' Single Agent': 'tab:gray',
+                         'follow random': 'tab:olive'
                          }
     result_dict = {}
     experiment_dict = {}
@@ -29,14 +40,27 @@ def run(args):
                                                 mean_of_env, result_dict)
     create_plot(args, id_of_experiments, mean_of_env)
 
+    result_dict['Average'] = mean_of_env
+    average_reward_over_time = {}
+    for k in result_dict.keys():
+        average_reward_over_time[k] = {}
+        for kk in result_dict[k].keys():
+            if "step" in kk:
+                continue
+            average_reward_over_time[k][kk] = np.nanmean(result_dict[k][kk][
+                                                             "mean"])
+    make_full_table(average_reward_over_time, Path(
+        "tex_for_paper/ablation.tex"))
+
 
 def create_plot(args, id_of_experiments, mean_of_env):
     fig, ax = plt.subplots()
     for id in id_of_experiments.keys():
         ax.plot(mean_of_env['global_steps'],
-                mean_of_env[id]['mean_of_means'],
-                label=id.replace('_',''),
-                c=id_of_experiments[id])
+                mean_of_env[id]['mean'],
+                label=id.replace('_', ''),
+                c=id_of_experiments[id],
+                linestyle='dashed' if 'A S' in id else 'solid')
     ax.legend()
     save_path = Path(args['path_to_project']) / 'plots_for_paper/plots'
     save_path.mkdir(exist_ok=True, parents=True)
@@ -49,17 +73,17 @@ def average_experiments_across_environments(experiment_dict, id, mean_of_env,
     mean_of_env[id] = {}
     df_mean = pd.concat([result_dict[env][id]['mean'] for env in
                          experiment_dict.keys()], axis=1)
-    mean_above_environments = df_mean.mean(axis=1)
-    mean_of_env[id]['mean_of_means'] = mean_above_environments
+    mean_above_environments = df_mean.mean(axis=1, numeric_only=True)
+    mean_of_env[id]['mean'] = mean_above_environments
 
 
 def read_env_data_from_csv(args, experiment_dict):
     experiment_dict['Cheetah'] = pd.read_csv(
         Path(args['path_to_project']) / args['path_half_cheetah']
     )
-    # experiment_dict['Ant'] = pd.read_csv(
-    #     Path(args['path_to_project']) / args['path_ant']
-    # )
+    experiment_dict['Ant'] = pd.read_csv(
+        Path(args['path_to_project']) / args['path_ant']
+    )
     experiment_dict['Hopper'] = pd.read_csv(
         Path(args['path_to_project']) / args['path_hopper']
     )
@@ -71,11 +95,17 @@ def read_env_data_from_csv(args, experiment_dict):
 def average_experiments_for_one_env(df, env, id_of_experiments, result_dict):
     result_dict[env] = {}
     df_column_names = df.columns.values.tolist()
-    normalize_values_in_one_env(df, df_column_names)
+    # normalize_values_in_one_env(df, df_column_names)
     result_dict[env]['global_step'] = df['global_step']
+    max_of_env = 0
     for id in id_of_experiments.keys():
         average_one_experiment_in_one_env(df, df_column_names, env, id,
                                           result_dict)
+        if max(result_dict[env][id]['mean']) > max_of_env:
+            max_of_env = max(result_dict[env][id]['mean'])
+    # normalize
+    for id in id_of_experiments.keys():
+        result_dict[env][id]['mean'] /= max_of_env
 
 
 def normalize_values_in_one_env(df, df_column_names):
@@ -115,8 +145,8 @@ def average_peers_in_one_experiment(df, df_column_names, experiment_id):
         df_column_names,
         regex=rf'.*{experiment_id}.*step(?!.*__M)'
     )
-    mean = df[experiment_columns].mean(axis=1)
-    std = df[experiment_columns].std(axis=1)
+    mean = df[experiment_columns].mean(axis=1, numeric_only=True)
+    std = df[experiment_columns].std(axis=1, numeric_only=True)
     step = df[experiment_step]
     return mean, std, step
 
@@ -131,13 +161,10 @@ def get_columns_including_str(df_column_names, regex):
 
 if __name__ == '__main__':
     args = {
-        'path_to_project': '/home/jbrugger/PycharmProjects/decentralized'
-                           '-peer-learning',
-        'path_half_cheetah':
-            'plots_for_paper/data/half_cheetah_150_200_ablation'
-            '.csv',
-        'path_ant': 'plots_for_paper/data/Ant_150_200_ablation.csv',
-        'path_hopper': 'plots_for_paper/data/hopper_150_200_ablation.csv',
-        'path_walker': 'plots_for_paper/data/Walker_150_200_ablation.csv'
+        'path_to_project': os.getcwd(),
+        'path_half_cheetah': 'data/half_cheetah_150_200_ablation.csv',
+        'path_ant': 'data/Ant_150_200_ablation.csv',
+        'path_hopper': 'data/hopper_150_200_ablation.csv',
+        'path_walker': 'data/Walker_150_200_ablation.csv'
     }
     run(args)
