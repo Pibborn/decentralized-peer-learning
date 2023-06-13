@@ -1,18 +1,22 @@
-# Decentralized Peer Learning
+# Peer Learning: *Learning Complex Policies in Groups from Scratch via Action Recommendations*
 
-Multiple agents learning together.
+Multiple agents (*peers*) learning together simultaneously from scratch with the ability to communicate in a '*What would you do in my situation?*' manner.
 
 ## Installation
 
-``pip install -e .``
+```bash
+pip install -e .
+```
 
 ## Sample Usage
 
 The entry point to Peer Learning is the ``run_peer.py`` file.
-You can simply do Peer Learning with the default setting by running the followong line of code:
+You can simply do Peer Learning with the default setting by running the following line of code:
 
-``python run_peer.py``
+```bash
+python run_peer.py
+```
 
 ## Experiments
 
-In [Experiments.md](Experiments.md), you find the commands to replicate the experiments reported in our paper including all hyperparameters.
+In [Experiments.md](), you find the commands to replicate the experiments reported in our paper including all hyperparameters.
