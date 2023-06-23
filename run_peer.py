@@ -108,6 +108,9 @@ if __name__ == '__main__':
     str_folder = str(experiment_folder)
     print("Experiment folder is", str_folder)
 
+    # suppress gym warnings
+    gym.logger.set_level(level=gym.logger.DISABLED)
+
     # seed everything
     set_random_seed(args.seed)
 

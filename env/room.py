@@ -8,7 +8,8 @@ class RoomEnv(Hallway):
     def __init__(self, length=9, dims=1, **kwargs):
         super().__init__(size=[length] * dims, num_actions=2*dims, **kwargs)
         self.start_location = self.size // 2  # start in the middle
-        self.observation_space = gym.spaces.Box(0, 1, shape=(2 * dims,))
+        self.observation_space = gym.spaces.Box(0, 1, shape=(2 * dims,),
+                                                dtype=np.float64)
         self.np_random = np.random.default_rng()
 
     def reset(self):

@@ -3,9 +3,11 @@
 Multiple agents (*peers*) learning together simultaneously from scratch with the ability to communicate in a '*What would you do in my situation?*' manner.
 
 ## Installation
+All packages are specified for Python version 3.7.4.
 
 ```bash
-pip install -e .
+pip install -r requirements.txt
+pip install stable-baselines3==1.5.0 --no-dependencies
 ```
 
 ## Sample Usage
