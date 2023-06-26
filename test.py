@@ -27,7 +27,8 @@ def make_env():
 
 
 env = DummyVecEnv([make_env])
-model = PPO(config["policy_type"], env, verbose=1, tensorboard_log=f"runs/{run.id}")
+model = PPO(config["policy_type"], env, verbose=1,
+            tensorboard_log=f"runs/{run.id}")
 model.learn(
     total_timesteps=config["total_timesteps"],
     callback=WandbCallback(
