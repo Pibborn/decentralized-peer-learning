@@ -22,3 +22,8 @@ python run_peer.py
 ## Experiments
 
 In [Experiments.md](Experiments.md), you find the commands to replicate the experiments reported in our paper including all hyperparameters.
+
+
+running pip install -r requirements_mogon.txt will result in 
+stable-baselines3 1.5.0 requires gym==0.21, but you'll have gym 0.25.2 which is incompatible.
+but should work anyway. 

@@ -4,14 +4,13 @@ from pathlib import Path
 
 def run():
     # Writing to file
-    script_folder = 'scripts_mujoco'
+    script_folder = 'scripts_smaller_net_mujoco'
     output_folder = 'output'
     environments = ['HalfCheetah-v4',
                     'Walker2d-v4',
                     'Ant-v4',
                     'Hopper-v4',
-                    'Swimmer-v4',
-                    'InvertedDoublePendulum-v4'
+
 
                     # 'HalfCheetahBulletEnv-v0',
                     # 'HalfCheetahPyBulletEnv-v0'
@@ -31,7 +30,7 @@ def run():
                 'HopperPyBulletEnv-v0': ""
                 }
 
-    number_agent = [4, 1]
+    number_agent = [1]
     runnning_time = {
         'HalfCheetah-v4': '72:00:00',
         'Walker2d-v4': '72:00:00',
@@ -62,13 +61,13 @@ def run():
     }
     # learning_rate = {'7.3e-4': 7.3e-4}
     mix_agents = ["\"SAC\""]  # ["\"SAC SAC SAC SAC\""]# "\"SAC SAC TD3 TD3\"", "\"TD3 TD3 TD3 TD3\""]
-    net_archs = ["\"200 300\""]  # ["\"25 25\""]  # , "\"150 200\"", "\"200 300\"", "\"350 300\""]
+    net_archs = [ "\"25 25\"", "\"150 200\"", "\"200 300\"", "\"350 300\""]
     n_timesteps = {
         'HalfCheetah-v4': 1_000_000,
         'Walker2d-v4': 1_000_000,
         'Ant-v4': 1_000_000,
         'Hopper-v4': 1_000_000,
-        'Swimmer-v4': 1_000_000,
+        'Swimmer-v4': 400_000,
         'InvertedDoublePendulum-v4': 500_000,
 
         'HalfCheetahBulletEnv-v0': 1_000_000,
