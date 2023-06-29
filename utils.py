@@ -5,6 +5,8 @@ import json
 
 import numpy as np
 
+from pathlib import Path
+
 from stable_baselines3.common.env_util import DummyVecEnv
 from stable_baselines3.common.monitor import Monitor
 
@@ -94,6 +96,8 @@ def add_default_values_to_parser(parser):
                         choices=["online", "offline", "disabled"])
     parser.add_argument("--discrete-actions", type=str2bool, nargs="?",
                         const=False, default=False)
+    parser.add_argument("--save-dir", type=Path,
+                        default=Path.cwd().joinpath("Experiments"))
 
     # Agents
     agent_parser = parser.add_argument_group("Agent")

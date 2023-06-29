@@ -2,8 +2,6 @@ import argparse
 import datetime
 
 import gym
-# import pybulletgym  # noqa: F401
-# import pybullet_envs  # noqa: F401
 
 from pathlib import Path
 
@@ -102,8 +100,7 @@ if __name__ == '__main__':
     # create results/experiments folder
     time_string = datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
     unique_dir = f"{time_string}__{args.job_id}"
-    experiment_folder = Path.cwd().joinpath("Experiments", args.save_name,
-                                            unique_dir)
+    experiment_folder = args.save_dir.joinpath(args.save_name, unique_dir)
     experiment_folder.mkdir(exist_ok=True, parents=True)
     str_folder = str(experiment_folder)
     print("Experiment folder is", str_folder)
