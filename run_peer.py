@@ -116,6 +116,7 @@ if __name__ == '__main__':
     run = wandb.init(entity="jgu-wandb", config=args.__dict__,
                      project="peer-learning",
                      monitor_gym=True, sync_tensorboard=False,
+                     name=f"{args.save_name}__{args.job_id}",
                      notes=f"Peer Learning with {args.agent_count} agents on "
                            f"the {args.env.split('-')[0]} environment.",
                      dir=str_folder, mode=args.wandb)
