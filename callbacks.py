@@ -119,3 +119,10 @@ class PeerEvalCallback(EvalCallback):
                 active_peer, followed_peer): diff[active_peer, followed_peer]},
                       commit=False)
         self.last_logged_matrix = np.copy(self.follow_matrix)
+
+    def commit_global_step(self, timesteps):
+        if self.peer_group.active_peer == len(self.peer_group) - 1:
+            eval_values = {"global_step": self.n_calls + self.eval_freq}
+            wandb.log(eval_values, commit=True)
+
+        self.n_calls += timesteps
