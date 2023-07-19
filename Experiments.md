@@ -13,7 +13,7 @@ run_peer.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --a
 
 #### Single Agent
 ```bash
-run_fullinfo.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --agent-count 1 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 10000 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --learning_rate "lambda x: 7.3e-4" --mix-agents SAC
+run_peer.py --save-name <name> --job_id <id> --env HalfCheetah-v4 --env_args --agent-count 1 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 10000 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 7.3e-4" --agents_to_store 0 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic False --use-agent-value False --use-trust False --peers-sample-with-noise True
 ```
 
 #### Random Advice
@@ -35,7 +35,7 @@ run_peer.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_w
 
 #### Single Agent
 ```bash
-run_fullinfo.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 1 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --learning_rate "lambda x: 3e-4" --mix-agents SAC
+run_run.py --save-name <name> --job_id <id> --env Ant-v4 --env_args terminate_when_unhealthy=False --agent-count 1 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic False --use-agent-value False --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
 ```
 
 #### Random Advice
@@ -56,7 +56,7 @@ run_peer.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminat
 
 #### Single Agent
 ```bash
-run_fullinfo.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminate_when_unhealthy=False --agent-count 1 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --learning_rate "lambda x: 3e-4" --mix-agents SAC
+run_run.py --save-name <name> --job_id <id> --env Hopper-v4 --env_args terminate_when_unhealthy=False --agent-count 1 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --min-epoch-length 10000 --sample-from-suggestions True --use-critic False --use-agent-value False --use-trust False --peers-sample-with-noise True --only-follow-peers False --max-peer-epochs 10000000
 ```
 
 #### Random Advice
@@ -77,7 +77,7 @@ run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args termin
 
 #### Single Agent
 ```bash
-run_fullinfo.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 1 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --learning_rate "lambda x: 3e-4" --mix-agents SAC
+run_peer.py --save-name <name> --job_id <id> --env Walker2d-v4 --env_args terminate_when_unhealthy=False --agent-count 1 --batch-size 256 --buffer-size 1000000 --steps 1000000 --buffer-start-size 100 --gamma 0.99 --gradient_steps 8 --tau 0.02 --train_freq 8 --seed <seed> --net-arch 150 200 --follow-steps 10 --learning_rate "lambda x: 3e-4" --agents_to_store 0 --T-decay 0 --mix-agents SAC --switch-ratio 0 --use-advantage True --epsilon 0.2 --T 1 --sample-from-suggestions True --use-critic False --use-agent-value False --use-trust False --peers-sample-with-noise True
 ```
 
 #### Random Advice
