@@ -41,7 +41,7 @@ class PeerGroup:
 
             # setup agent values
             if use_agent_values:
-                peer.peer_values[key] = self.agent_values  # noqa
+                peer.peer_values[key] = self.agent_values  # noqa (Eq. 6)
                 peer.peer_value_functions[key] = self._update_agent_values
 
     def _update_agent_values(self, batch_size=10):
@@ -65,9 +65,9 @@ class PeerGroup:
                     prev_obs = np.array([b[4] for b in batch]).reshape(bs, -1)
                     prev_v = peer.value(prev_obs)
                 else:
-                    prev_v = np.zeros_like(v)
+                    prev_v = np.zeros_like(v)  # no advantage (see Eq. 5)
 
-                for i in range(len(batch)):
+                for i in range(len(batch)):  # Eq. 8
                     target = (batch[i][0] + peer.gamma * v[i]) - prev_v[i]
                     counts[batch[i][2]] += 1
                     targets[batch[i][2]] += target
@@ -77,7 +77,7 @@ class PeerGroup:
         counts[counts == 0] = 1
 
         targets /= counts
-        self.agent_values += self.lr * (targets - self.agent_values)
+        self.agent_values += self.lr * (targets - self.agent_values)  # Eq. 7
 
     def learn(self, n_epochs, max_epoch_len, callbacks, **kwargs):
         """ The outer peer learning routine. """
@@ -179,6 +179,10 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                 self.steps_followed = 0
 
                 self.only_follow_peers = only_follow_peers
+                for layer in self.q_net.q_net:
+                    if hasattr(layer, "weight"):
+                        print(torch.sum(layer.weight))
+                pass
 
         @property
         def n_peers(self):
@@ -231,19 +235,20 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                 actions.append(action)
             actions = np.asarray(actions).squeeze(1)
 
-            # critique
+            # critic (Eq. 3)
             if self.use_critic:
                 observations = np.tile(obs, (self.n_peers, 1))
                 q_values = self.critique(observations, actions).reshape(-1)
-                self.peer_values['critic'] = q_values
+                self.peer_values['critic'] = q_values  # part of Eq. 9
 
             # calculate peer values, e.g., trust and agent values
             values = np.zeros(self.n_peers)
             for key in self.peer_values.keys():
+                # part of Eq. 9 incl. Footnote 7
                 values += self.__normalize(self.peer_values[key])
 
             if self.sample_actions:
-                # sample action from probability
+                # sample action from probability distribution (Eq. 2)
                 temp = self.temperature * np.exp(-self.temp_decay * self.epoch)
                 p = np.exp(values / temp)
                 p /= np.sum(p)
@@ -274,7 +279,9 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             return self.critique(observations, actions)
 
         def _update_trust(self, batch_size=10):
-            """ Updates the trust values with samples from the buffer. """
+            """ Updates the trust values with samples from the buffer.
+                (Eq. 5 and 8)
+            """
             if self.use_buffer_for_trust:
                 batch = self.buffer.sample(batch_size)
             else:
@@ -293,12 +300,12 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                                                                    -1)
                 prev_v = self.value(prev_obs)
             else:
-                prev_v = np.zeros_like(v)
+                prev_v = np.zeros_like(v)  # no comparison to own act (Eq. 5)
 
             targets = np.zeros(self.n_peers)
             counts = np.zeros(self.n_peers)
             for i in range(batch_size):
-                target = (batch[i][0] + self.gamma * v[i]) - prev_v[i]
+                target = (batch[i][0] + self.gamma * v[i]) - prev_v[i]  # Eq. 8
                 counts[batch[i][2]] += 1
                 targets[batch[i][2]] += target
 
@@ -307,6 +314,7 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
             counts[counts == 0] = 1
 
             targets /= counts
+            # Eq. 4
             self.trust_values += self.group.lr * (targets - self.trust_values)
 
         def _on_step(self):
