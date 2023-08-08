@@ -179,10 +179,6 @@ def make_peer_class(cls: Type[OffPolicyAlgorithm]):
                 self.steps_followed = 0
 
                 self.only_follow_peers = only_follow_peers
-                for layer in self.q_net.q_net:
-                    if hasattr(layer, "weight"):
-                        print(torch.sum(layer.weight))
-                pass
 
         @property
         def n_peers(self):
